@@ -91,7 +91,7 @@ export function describeError(e) {
     case "refused":
       return "Claude menolak permintaan ini.";
     case "timeout":
-      return "Server kehabisan waktu saat meminta Gemini. Coba lagi; kalau berulang, pilih 1 kasus per topik.";
+      return "Server kehabisan waktu saat meminta Gemini. Coba lagi beberapa detik kemudian.";
     case "missing_api_key":
       return "Server belum punya API key. Lokal: isi GEMINI_API_KEY di file .env. Netlify: tambahkan GEMINI_API_KEY di Environment variables dengan scope Functions, lalu deploy ulang.";
     default:

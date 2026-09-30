@@ -1,27 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { BUILTIN_CASES } from "./cases.js";
-import { TOPICS, buildPrompt, buildPlans, usedPoinFrom, normalizeCases, indicesForScope } from "./generator.js";
+import { TOPICS, ALL_INDICES, buildPrompt, buildPlans, usedPoinFrom, normalizeCases } from "./generator.js";
 import { getAsker, describeError } from "./askClaude.js";
 
 const STORAGE_KEY = "kuis.generated.v1";
 const USED_KEY = "kuis.usedPoin.v1";
-const LAST_KEY = "kuis.lastIndices.v1";
 
-const loadLast = () => {
-  try {
-    const v = JSON.parse(localStorage.getItem(LAST_KEY) || "[]");
-    return Array.isArray(v) ? v.map(Number).filter(Number.isInteger) : [];
-  } catch {
-    return [];
-  }
-};
-const saveLast = (list) => {
-  try {
-    localStorage.setItem(LAST_KEY, JSON.stringify(list));
-  } catch {
-    /* ignore */
-  }
-};
 
 const loadUsed = () => {
   try {
@@ -91,9 +75,7 @@ export default function Kuis() {
   // Claude generator
   const [asker, setAsker] = useState(undefined); // undefined = still resolving
   const [gen, setGen] = useState({ status: "idle" });
-  const [scope, setScope] = useState("satu"); // "satu" = 1 kasus per topik, "semua"
   const [usedPoin, setUsedPoin] = useState(loadUsed); // slide points already tested
-  const [lastIndices, setLastIndices] = useState(loadLast); // slots regenerated last time
   const [elapsed, setElapsed] = useState(0);
   const abortRef = useRef(null);
 
@@ -159,7 +141,7 @@ export default function Kuis() {
     abortRef.current = ctl;
     setGen({ status: "loading", chars: 0 });
     try {
-      const indices = indicesForScope(scope, lastIndices);
+      const indices = ALL_INDICES;
       const used = usedPoinFrom(cases, usedPoin);
       // Plans are built here so the cases of one topic never share a point,
       // even though the server handles each case in its own request.
@@ -174,8 +156,6 @@ export default function Kuis() {
       const nextUsed = [...used, ...fresh.flatMap((c) => c.poin || [])].slice(-200);
       setUsedPoin(nextUsed);
       saveUsed(nextUsed);
-      setLastIndices(indices);
-      saveLast(indices);
       // Replace only the regenerated slots; the other cases stay as they are.
       const merged = cases.map((c) => fresh.find((f) => f.id === c.id) || c);
       setCases(merged);
@@ -260,30 +240,9 @@ export default function Kuis() {
             ) : (
               <>
                 <p className="mt-3 text-sm text-slate-700">
-                  Minta {who} menyusun kasus baru dari materi PPT dengan soal yang rawan
-                  keluar ujian. Kasus yang tidak diacak tetap seperti sekarang.
+                  Minta {who} menyusun 7 kasus baru dari materi PPT dengan soal yang rawan
+                  keluar ujian. Semua kasus diganti.
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Berapa kasus yang diacak">
-                  {[
-                    ["satu", "1 kasus per topik", "4 kasus baru, bergantian tiap acak"],
-                    ["semua", "Semua kasus", "7 kasus baru"],
-                  ].map(([v, label, sub]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      role="radio"
-                      aria-checked={scope === v}
-                      disabled={loading}
-                      onClick={() => setScope(v)}
-                      className={`rounded-xl border-2 px-3 py-2 text-left text-sm ${
-                        scope === v ? "border-teal-700 bg-white" : "border-slate-200 bg-white/60 text-slate-600"
-                      }`}
-                    >
-                      <span className="block font-semibold">{label}</span>
-                      <span className="block text-xs text-slate-500">{sub}</span>
-                    </button>
-                  ))}
-                </div>
                 {!loading ? (
                   <button
                     onClick={generate}
