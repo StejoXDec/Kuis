@@ -153,11 +153,20 @@ export default function Kuis() {
   const shell = "min-h-screen w-full bg-slate-50 text-slate-900";
   const wrap = "mx-auto max-w-xl px-4 py-6";
   const loading = gen.status === "loading";
+  const who = !asker
+    ? "AI"
+    : asker.source === "artifact"
+    ? "Claude"
+    : asker.provider === "gemini"
+    ? "Gemini"
+    : asker.provider === "claude"
+    ? "Claude"
+    : "AI";
 
   if (!started) {
     const setLabel =
       setInfo.kind === "generated"
-        ? `Set buatan Claude · ${new Date(setInfo.at).toLocaleString("id-ID", {
+        ? `Set buatan ${who} · ${new Date(setInfo.at).toLocaleString("id-ID", {
             day: "numeric",
             month: "short",
             hour: "2-digit",
@@ -200,7 +209,7 @@ export default function Kuis() {
             ) : (
               <>
                 <p className="mt-3 text-sm text-slate-700">
-                  Minta Claude menyusun set soal yang benar-benar baru: pasien, skenario,
+                  Minta {who} menyusun set soal yang benar-benar baru: pasien, skenario,
                   pertanyaan, pilihan, dan pembahasan semuanya berubah, dengan topik dan
                   jumlah soal yang sama.
                 </p>
@@ -210,7 +219,7 @@ export default function Kuis() {
                     disabled={asker === undefined}
                     className="mt-3 w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white active:bg-teal-800 disabled:opacity-50"
                   >
-                    Acak soal baru dengan Claude
+                    Acak soal baru dengan {who}
                   </button>
                 ) : (
                   <div className="mt-3" role="status">
@@ -220,7 +229,7 @@ export default function Kuis() {
                         <p className="font-medium text-slate-900">
                           {gen.chars
                             ? `Menerima soal baru… ${gen.chars.toLocaleString("id-ID")} karakter`
-                            : "Claude sedang menyusun soal baru…"}
+                            : `${who} sedang menyusun soal baru…`}
                         </p>
                         <p className="text-slate-500">
                           Biasanya 1–2 menit. Berjalan {elapsed} detik.
@@ -359,7 +368,7 @@ export default function Kuis() {
                 }}
                 className="w-full rounded-xl border border-teal-300 bg-white px-4 py-3 font-medium text-teal-900 active:bg-teal-50"
               >
-                Acak soal baru dengan Claude
+                Acak soal baru dengan {who}
               </button>
             )}
             <button

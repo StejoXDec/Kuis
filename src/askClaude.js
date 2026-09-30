@@ -31,8 +31,13 @@ export async function getAsker() {
     return null;
   }
 
+  const info = await fetch("/api/generate")
+    .then((r) => r.json())
+    .catch(() => ({}));
+
   return {
     source: "server",
+    provider: info.provider || null, // "gemini" | "claude" | null
     ask: async (prompt, { signal } = {}) => {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -71,7 +76,7 @@ export function describeError(e) {
     case "refused":
       return "Claude menolak permintaan ini.";
     case "missing_api_key":
-      return "Server belum punya ANTHROPIC_API_KEY. Lihat README.";
+      return "Server belum punya API key. Isi GEMINI_API_KEY di file .env, lihat README.";
     default:
       return (e && e.message) || "Gagal membuat soal. Coba lagi.";
   }

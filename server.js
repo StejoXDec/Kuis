@@ -44,7 +44,7 @@ http
   })
   .listen(PORT, () => {
     console.log(`Kuis berjalan di http://localhost:${PORT}`);
-    if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
-      console.warn("Peringatan: ANTHROPIC_API_KEY belum diset. Fitur acak soal tidak akan jalan.");
+    if (!process.env.GEMINI_API_KEY && !process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+      console.warn("Peringatan: GEMINI_API_KEY belum diset di .env. Fitur acak soal tidak akan jalan.");
     }
   });

@@ -118,6 +118,7 @@ Aturan isi:
 - Setiap soal: 4 pilihan (o), satu jawaban benar (a = indeks 0–3), dan pembahasan (e) 1–3 kalimat yang menjelaskan mengapa jawaban itu benar dan mengapa pengecoh salah bila relevan.
 - Sebarkan indeks jawaban benar secara merata; jangan menaruh jawaban benar di indeks yang sama untuk lebih dari dua soal berturut-turut.
 - Pengecoh harus masuk akal secara klinis (obat, dosis, atau tindakan yang benar-benar ada), bukan jawaban konyol.
+- DILARANG memakai tanda kurung ( ) di pertanyaan (q) maupun di semua pilihan jawaban (o). Tulis keterangan tambahan sebagai bagian kalimat biasa, misalnya "Tenofovir, kategori kehamilan B" bukan "Tenofovir (kategori B)". Jangan menaruh petunjuk di pilihan yang membuat jawaban benar terlihat berbeda dari pengecoh; semua pilihan harus panjang dan gayanya setara.
 - Konten harus sesuai konsensus dan pedoman yang umum dipakai di Indonesia dan internasional (Konsensus GERD Indonesia, pedoman eradikasi H. pylori, PNPK/Kemenkes 2023 untuk hepatitis B, EASL, ACIP untuk vaksin hepatitis A). Sebutkan dosis dan jadwal yang lazim. Jika ada perbedaan antar sumber, pilih yang paling umum diajarkan dan sebutkan singkat di pembahasan.
 - Cakup variasi: obat (PPI, H2RA, antasida, sukralfat, misoprostol, regimen eradikasi, tenofovir, entecavir, vaksin HAV/HBV/kombinasi, HBIG), pemantauan, interaksi, populasi khusus (hamil, lansia, gangguan ginjal), komplikasi, dan interpretasi serologi.
 - Gunakan simbol × untuk frekuensi (contoh: 2×/hari) dan – untuk rentang.
@@ -132,6 +133,22 @@ Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce}`;
 }
 
 /**
+ * Remove parentheses from a question or option. "Tenofovir (kategori B)"
+ * becomes "Tenofovir, kategori B" so no information is lost but nothing is
+ * bracketed. Safety net for when the model ignores the prompt rule.
+ */
+export function stripParens(s) {
+  return String(s)
+    .replace(/\s*\(\s*/g, ", ")
+    .replace(/\s*\)/g, "")
+    .replace(/^,\s*/, "")
+    .replace(/,\s*,/g, ",")
+    .replace(/,\s*$/, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
  * Validate and normalise a reply. Returns an array of cases in the same
  * shape as the built-in set, or throws with a readable message.
  */
@@ -140,11 +157,17 @@ export function normalizeCases(data) {
   if (!Array.isArray(cases) || cases.length === 0) {
     throw new Error("Balasan tidak berisi daftar kasus.");
   }
-  return cases.map((c, i) => {
-    const plan = CASE_PLAN[i] || { id: `g${i + 1}` };
+  if (cases.length < CASE_PLAN.length) {
+    throw new Error(
+      `Balasan hanya berisi ${cases.length} kasus, seharusnya ${CASE_PLAN.length}.`
+    );
+  }
+  // Classification always follows CASE_PLAN (same ids and topics as the
+  // built-in set), whatever the model labelled them.
+  return cases.slice(0, CASE_PLAN.length).map((c, i) => {
+    const plan = CASE_PLAN[i];
     if (!c || typeof c !== "object") throw new Error(`Kasus ${i + 1} tidak valid.`);
-    const topic = TOPICS.includes(c.topic) ? c.topic : plan.topic;
-    if (!topic) throw new Error(`Kasus ${i + 1}: topik tidak dikenal.`);
+    const topic = plan.topic;
     if (!Array.isArray(c.questions) || c.questions.length === 0) {
       throw new Error(`Kasus ${i + 1}: tidak ada soal.`);
     }
@@ -157,8 +180,8 @@ export function normalizeCases(data) {
         throw new Error(`Kasus ${i + 1} soal ${j + 1}: indeks jawaban tidak valid.`);
       }
       return {
-        q: q.q.trim(),
-        o: q.o.map((s) => String(s).trim()),
+        q: stripParens(q.q),
+        o: q.o.map(stripParens),
         a,
         e: typeof q.e === "string" ? q.e.trim() : "",
       };
