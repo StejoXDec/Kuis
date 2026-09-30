@@ -2,6 +2,8 @@
 // Used by the browser (to build the prompt and validate the reply) and by the
 // Node API handler (to build the JSON schema the API must follow).
 
+import { MATERI, pickPoin } from "./materi.js";
+
 export const TOPICS = ["GERD", "PUD", "Hepatitis A", "Hepatitis B"];
 
 // Same shape as the original set: 7 cases, same topic distribution.
@@ -13,21 +15,6 @@ export const CASE_PLAN = [
   { id: "c5", topic: "Hepatitis A", n: 4 },
   { id: "c6", topic: "Hepatitis B", n: 5 },
   { id: "c7", topic: "Hepatitis B", n: 3 },
-];
-
-const ANGLES = [
-  "diagnosis dan alarm symptom",
-  "pilihan obat lini pertama dan dosis",
-  "interaksi obat",
-  "efek samping dan pemantauan jangka panjang",
-  "komplikasi dan kegawatan",
-  "interpretasi hasil laboratorium/serologi",
-  "vaksinasi dan profilaksis",
-  "edukasi dan modifikasi gaya hidup",
-  "tatalaksana pada kehamilan atau komorbid",
-  "indikasi rujukan dan pemeriksaan penunjang",
-  "patofisiologi yang mendasari pilihan terapi",
-  "durasi terapi dan evaluasi respons",
 ];
 
 const SETTINGS = [
@@ -92,24 +79,30 @@ const prevStemsOf = (previousCases) =>
     .join("\n") || "- (tidak ada)";
 
 const RULES = `Aturan isi:
-- Setiap kasus: "title" berupa inisial dan usia (contoh: "Tn. B, 47 tahun"), "text" berupa skenario 2–4 kalimat yang memuat data klinis yang dibutuhkan untuk menjawab semua soal kasus itu.
-- Setiap soal: 4 pilihan (o), satu jawaban benar (a = indeks 0–3), dan pembahasan (e) 1–3 kalimat yang menjelaskan mengapa jawaban itu benar dan mengapa pengecoh salah bila relevan.
-- Sebarkan indeks jawaban benar secara merata; jangan menaruh jawaban benar di indeks yang sama untuk lebih dari dua soal berturut-turut.
-- Pengecoh harus masuk akal secara klinis (obat, dosis, atau tindakan yang benar-benar ada), bukan jawaban konyol.
-- DILARANG memakai tanda kurung ( ) di pertanyaan (q) maupun di semua pilihan jawaban (o). Tulis keterangan tambahan sebagai bagian kalimat biasa, misalnya "Tenofovir, kategori kehamilan B" bukan "Tenofovir (kategori B)". Jangan menaruh petunjuk di pilihan yang membuat jawaban benar terlihat berbeda dari pengecoh; semua pilihan harus panjang dan gayanya setara.
-- Konten harus sesuai konsensus dan pedoman yang umum dipakai di Indonesia dan internasional (Konsensus GERD Indonesia, pedoman eradikasi H. pylori, PNPK/Kemenkes 2023 untuk hepatitis B, EASL, ACIP untuk vaksin hepatitis A). Sebutkan dosis dan jadwal yang lazim. Jika ada perbedaan antar sumber, pilih yang paling umum diajarkan dan sebutkan singkat di pembahasan.
-- Cakup variasi: obat (PPI, H2RA, antasida, sukralfat, misoprostol, regimen eradikasi, tenofovir, entecavir, vaksin HAV/HBV/kombinasi, HBIG), pemantauan, interaksi, populasi khusus (hamil, lansia, gangguan ginjal), komplikasi, dan interpretasi serologi.
-- Gunakan simbol × untuk frekuensi (contoh: 2×/hari) dan – untuk rentang.`;
+- SUMBER FAKTA: semua fakta, angka, dosis, jadwal, kategori risiko, dan istilah HARUS diambil dari MATERI KULIAH di bawah. Jangan menambahkan fakta dari luar materi. Bila sebuah poin tidak ada di materi, jangan diuji.
+- Setiap kasus: "title" berupa inisial dan usia, contoh "Tn. B, 47 tahun"; "text" berupa vignette klinis 2–4 kalimat yang memuat semua data yang dibutuhkan untuk menjawab soal: keluhan, durasi, riwayat obat dengan nama dan dosis, komorbid, hasil pemeriksaan atau serologi bila relevan.
+- Setiap soal menguji SATU poin materi yang ditentukan di rencana, dengan pertanyaan penerapan pada pasien itu, bukan hafalan definisi. Contoh gaya yang diinginkan: "Langkah berikutnya menurut alur tatalaksana di layanan primer adalah…", "Regimen eradikasi yang paling sesuai untuk pasien ini adalah…", "Bila obat X dipakai bersama Y, yang terjadi adalah…", "Hasil serologi ini berarti…", "Pemantauan yang perlu dipertimbangkan bila terapi lebih dari 1 tahun adalah…".
+- Setiap soal: 4 pilihan (o), satu jawaban benar (a = indeks 0–3), dan pembahasan (e) 1–3 kalimat yang menjelaskan alasan jawaban benar, menyebut sumber persis seperti tertulis di materi, misalnya "Dipiro 12 ed hal 468" atau "Lexidrug 2025", dan menyinggung mengapa pengecoh utama salah.
+- Pengecoh harus berupa obat, dosis, angka, atau tindakan yang benar-benar ada di materi tetapi salah untuk konteks ini, misalnya dosis anak untuk dewasa, regimen lini kedua untuk pasien naif, kategori kehamilan obat lain.
+- DILARANG memakai tanda kurung ( ) di pertanyaan (q) maupun di semua pilihan jawaban (o). Tulis keterangan sebagai bagian kalimat, misalnya "Tenofovir, kategori kehamilan B". Jangan menaruh petunjuk di pilihan yang membuat jawaban benar terlihat beda dari pengecoh; panjang dan gaya semua pilihan harus setara.
+- Sesuaikan pasien dengan poin yang diuji: bila poin menyangkut kehamilan, anak, lansia, gangguan ginjal, atau alergi penisilin, buat pasien dan vignette-nya memang demikian sehingga pertanyaannya wajar.
+- Jangan menulis frasa seperti "menurut materi kuliah", "sesuai slide", atau "berdasarkan materi" di pertanyaan maupun pilihan. Di pembahasan sebut sumber aslinya, misalnya Dipiro, Makmun 2021, Kemenkes 2023, Lexidrug 2025, bukan kata "slide".
+- Gunakan simbol × untuk frekuensi, contoh 2×/hari, dan – untuk rentang.`;
 
-const INTRO = `Kamu adalah dosen farmakologi klinik/farmakoterapi yang menyusun kuis kasus untuk mahasiswa kedokteran dan farmasi di Indonesia.`;
+const INTRO = `Kamu adalah dosen farmakoterapi yang menyusun kuis kasus untuk mahasiswa S1 Farmasi, berdasarkan slide kuliah "Farmakoterapi Gangguan Saluran Cerna dan Nutrisi" tentang GERD, PUD, Hepatitis A, dan Hepatitis B.`;
 
-const NOVELTY = `harus benar-benar baru dan berbeda dari set sebelumnya dari segala sisi: pasien (nama inisial, usia, jenis kelamin, pekerjaan, komorbid), latar layanan, alur cerita kasus, sudut pandang pertanyaan, pilihan jawaban, dan pembahasan. Jangan mengulang atau memparafrasakan soal lama.`;
+const NOVELTY = `harus benar-benar baru dan berbeda dari set sebelumnya: pasien dengan inisial, usia, jenis kelamin, pekerjaan, dan komorbid yang lain; latar layanan yang lain; alur cerita yang lain; dan poin materi yang diuji juga berbeda. Jangan mengulang atau memparafrasakan soal lama.`;
 
+// One slide point per question, chosen at random from the topic's list, so
+// every set tests a different slice of the material.
 const planLine = (p, i) => {
-  const angles = pick(ANGLES, 3).join("; ");
   const setting = pick(SETTINGS, 1)[0];
-  return `${i + 1}. topic "${p.topic}", ${p.n} soal, latar: ${setting}, sudut pandang yang harus tercakup: ${angles}`;
+  const poin = pickPoin(p.topic, p.n).map((s, j) => `   soal ${j + 1}: ${s}`).join("\n");
+  return `${i + 1}. topic "${p.topic}", ${p.n} soal, latar: ${setting}. Poin materi yang WAJIB diuji, satu per soal:\n${poin}`;
 };
+
+const materiBlock = (topics) =>
+  topics.map((t) => `### ${t}\n${MATERI[t].ringkasan}`).join("\n\n");
 
 const nonce = () => Math.random().toString(36).slice(2, 8);
 
@@ -126,6 +119,9 @@ Rencana set (ikuti persis urutan, topik, dan jumlah soal per kasus):
 ${CASE_PLAN.map(planLine).join("\n")}
 
 ${RULES}
+
+MATERI KULIAH:
+${materiBlock(TOPICS)}
 
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
 ${prevStemsOf(previousCases)}
@@ -151,6 +147,9 @@ ${planLine(p, i)}
 
 ${RULES}
 
+MATERI KULIAH:
+${materiBlock([p.topic])}
+
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
 ${prevStemsOf(previousCases)}
 
@@ -167,6 +166,11 @@ Tepat ${p.n} soal. Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce()}`;
  */
 export function stripParens(s) {
   return String(s)
+    // "menurut materi kuliah", "sesuai slide", "yang tercantum di materi", ...
+    .replace(
+      /,?\s*(?:yang\s+)?(?:tercantum\s+|dijelaskan\s+|disebutkan\s+)?(?:menurut|sesuai(?:\s+dengan)?|berdasarkan|di|dalam|dari|pada)\s+(?:materi(?:\s+kuliah)?|slide(?:\s+kuliah)?)(?:\s+(?:ini|tersebut|di\s+atas))?/gi,
+      ""
+    )
     .replace(/\s*\(\s*/g, ", ")
     .replace(/\s*\)/g, "")
     .replace(/^,\s*/, "")

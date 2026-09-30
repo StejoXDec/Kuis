@@ -73,6 +73,10 @@ npm start
 ## Struktur
 
 - `src/cases.js`: set soal asli (`BUILTIN_CASES`).
+- `src/materi.js`: ringkasan materi kuliah dari PPT GERD dan PUD serta Bahan
+  Ajar Hepatitis A dan B, ditambah daftar poin yang bisa diuji per topik. AI
+  hanya boleh memakai fakta dari sini; tiap soal diberi satu poin acak dari
+  daftar itu supaya set yang berbeda menguji bagian materi yang berbeda.
 - `src/generator.js`: rencana set (`CASE_PLAN`), prompt, skema JSON, validasi
   balasan, dan penghapusan tanda kurung.
 - `src/askClaude.js`: memilih jalur (artifact claude.ai atau `/api/generate`).
