@@ -161,10 +161,12 @@ export default function Kuis() {
     try {
       const indices = indicesForScope(scope, lastIndices);
       const used = usedPoinFrom(cases, usedPoin);
-      // The server plans its own points; only the artifact path needs plans here.
-      const plans = asker.source === "server" ? null : buildPlans(indices, used);
-      const prompt = plans ? buildPrompt(cases, indices, plans) : "";
-      const data = await asker.ask({ prompt, previousCases: cases, indices, usedPoin: used }, {
+      // Plans are built here so the cases of one topic never share a point,
+      // even though the server handles each case in its own request.
+      const plans = buildPlans(indices, used);
+      const prompt = asker.source === "artifact" ? buildPrompt(cases, indices, plans) : "";
+      const data = await asker.ask({ prompt, previousCases: cases, indices, usedPoin: used, plans }, {
+        onProgress: ({ done, total }) => setGen({ status: "loading", note: `Kasus selesai ${done} dari ${total}` }),
         signal: ctl.signal,
         onText: ({ text }) => setGen({ status: "loading", chars: text.length }),
       });
@@ -296,7 +298,9 @@ export default function Kuis() {
                       <span className="h-3 w-3 shrink-0 animate-pulse rounded-full bg-teal-600" />
                       <div className="min-w-0 flex-1 text-sm">
                         <p className="font-medium text-slate-900">
-                          {gen.chars
+                          {gen.note
+                            ? gen.note
+                            : gen.chars
                             ? `Menerima soal baru… ${gen.chars.toLocaleString("id-ID")} karakter`
                             : `${who} sedang menyusun soal baru…`}
                         </p>

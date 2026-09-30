@@ -6,7 +6,11 @@
 
 import { generateCases, pickProvider, cleanIndices, cleanUsedPoin } from "../api/generate.js";
 
-const STATUS = { missing_api_key: 500, rate_limited: 429, refused: 422, invalid_json: 502, upstream_error: 502, empty_completion: 502 };
+const STATUS = { missing_api_key: 500, rate_limited: 429, refused: 422, invalid_json: 502, upstream_error: 502, empty_completion: 502, timeout: 504 };
+
+// Netlify's free tier kills a synchronous function at 10 s. Stay under it and
+// answer with a clean {code:"timeout"} so the browser can retry.
+const BUDGET_MS = Number(process.env.FUNCTION_BUDGET_MS) || 9000;
 
 const json = (status, body) =>
   new Response(JSON.stringify(body), {
@@ -28,7 +32,7 @@ export default async (req) => {
   if (req.method !== "POST") return json(405, { error: "Use POST", code: "method_not_allowed" });
   try {
     const body = await req.json().catch(() => ({}));
-    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices), cleanUsedPoin(body.usedPoin));
+    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices), cleanUsedPoin(body.usedPoin), body.plan, { budgetMs: BUDGET_MS });
     return json(200, { cases, provider: pickProvider() });
   } catch (e) {
     const code = e.code || "server_error";

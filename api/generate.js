@@ -18,6 +18,7 @@ import {
   usedPoinFrom,
   normalizeCases,
 } from "../src/generator.js";
+import { MATERI, FORMAT_SOAL } from "../src/materi.js";
 
 // Tried in order; a model that is overloaded (503), rate limited (429) or
 // retired (404 / "no longer available") hands over to the next one.
@@ -66,10 +67,16 @@ const toGeminiSchema = (node) => {
  * One request to one Gemini model. Resolves the parsed JSON value.
  * Errors carry `code` and, when another model is worth trying, `tryNextModel`.
  */
-async function geminiCall(prompt, model, schema, { fetchImpl, apiKey }) {
+async function geminiCall(prompt, model, schema, { fetchImpl, apiKey, deadline = Infinity }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  const res = await fetchImpl(url, {
-    method: "POST",
+  const remaining = deadline - Date.now();
+  if (remaining < 2500) throw withCode("Server kehabisan waktu saat meminta Gemini.", "timeout");
+  const signal = Number.isFinite(remaining) ? AbortSignal.timeout(Math.min(remaining, 60000)) : undefined;
+  let res;
+  try {
+    res = await fetchImpl(url, {
+      signal,
+      method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -80,7 +87,13 @@ async function geminiCall(prompt, model, schema, { fetchImpl, apiKey }) {
         maxOutputTokens: 8192,
       },
     }),
-  });
+    });
+  } catch (e) {
+    if (e && (e.name === "TimeoutError" || e.name === "AbortError")) {
+      throw withCode("Server kehabisan waktu saat meminta Gemini.", "timeout");
+    }
+    throw withCode(`Tidak bisa menghubungi Gemini: ${e && e.message}`, "upstream_error", { tryNextModel: true });
+  }
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -134,6 +147,8 @@ async function geminiWithFallback(prompt, schema, opts) {
         return await geminiCall(prompt, model, schema, opts);
       } catch (e) {
         lastErr = e;
+        if (e.code === "timeout") throw e;
+        if (opts.deadline - Date.now() < 2500) throw withCode("Server kehabisan waktu saat meminta Gemini.", "timeout");
         if (e.code === "invalid_json" && attempt === 1) {
           console.warn(`[gemini] ${model}: ${e.message} -> mencoba sekali lagi`);
           continue;
@@ -152,10 +167,10 @@ async function geminiWithFallback(prompt, schema, opts) {
  * plan, all in parallel. A 20 KB single reply from the lite model broke its
  * JSON about half the time; 3 KB replies with a schema never did in testing.
  */
-export async function generateWithGemini(previousCases, { fetchImpl = fetch, apiKey = process.env.GEMINI_API_KEY, models = geminiModels(), indices = ALL_INDICES, usedPoin = [] } = {}) {
+export async function generateWithGemini(previousCases, { fetchImpl = fetch, apiKey = process.env.GEMINI_API_KEY, models = geminiModels(), indices = ALL_INDICES, usedPoin = [], plan = null, budgetMs = Infinity } = {}) {
   if (!apiKey) throw withCode("GEMINI_API_KEY belum diset di server.", "missing_api_key");
-  const opts = { fetchImpl, apiKey, models };
-  const plans = buildPlans(indices, usedPoinFrom(previousCases, usedPoin));
+  const opts = { fetchImpl, apiKey, models, deadline: Number.isFinite(budgetMs) ? Date.now() + budgetMs : Infinity };
+  const plans = plan && indices.length === 1 ? [{ ...plan, i: indices[0] }] : buildPlans(indices, usedPoinFrom(previousCases, usedPoin));
   const cases = await Promise.all(
     plans.map((plan) => geminiWithFallback(buildCasePrompt(previousCases, plan.i, plan), CASE_SCHEMA, opts))
   );
@@ -216,9 +231,27 @@ export const cleanIndices = (list) => {
 export const cleanUsedPoin = (list) =>
   (Array.isArray(list) ? list : []).filter((s) => typeof s === "string").map((s) => s.slice(0, 300)).slice(-300);
 
-export async function generateCases(previousCases = [], indices = ALL_INDICES, usedPoin = []) {
+/** A plan the browser built for one case: keep it only if every point and form is one of ours. */
+export const cleanPlan = (plan, indices) => {
+  if (!plan || typeof plan !== "object" || !Array.isArray(plan.items) || indices.length !== 1) return null;
+  const p = CASE_PLAN[indices[0]];
+  const mat = MATERI[p.topic] || {};
+  const known = new Set([...(mat.poinUjian || []), ...(mat.poinTambahan || [])]);
+  const items = plan.items
+    .filter((it) => it && known.has(it.poin) && FORMAT_SOAL.includes(it.format))
+    .slice(0, p.n);
+  if (items.length !== p.n) return null;
+  return {
+    i: indices[0],
+    setting: String(plan.setting || "").slice(0, 80) || "poliklinik",
+    identitas: String(plan.identitas || "").slice(0, 60) || "Tn. A, usia sekitar 30-40 tahun",
+    items,
+  };
+};
+
+export async function generateCases(previousCases = [], indices = ALL_INDICES, usedPoin = [], plan = null, { budgetMs = Infinity } = {}) {
   const provider = pickProvider();
-  if (provider === "gemini") return generateWithGemini(previousCases, { indices, usedPoin });
+  if (provider === "gemini") return generateWithGemini(previousCases, { indices, usedPoin, plan: cleanPlan(plan, indices), budgetMs });
   if (provider === "claude") return generateWithClaude(previousCases, indices, usedPoin);
   throw withCode("Belum ada API key. Isi GEMINI_API_KEY di file .env.", "missing_api_key");
 }
@@ -246,7 +279,7 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
-const STATUS = { missing_api_key: 500, rate_limited: 429, refused: 422, invalid_json: 502, upstream_error: 502, empty_completion: 502 };
+const STATUS = { missing_api_key: 500, rate_limited: 429, refused: 422, invalid_json: 502, upstream_error: 502, empty_completion: 502, timeout: 504 };
 
 // Only what the prompt needs from the previous set: titles and question stems.
 const slimCases = (list) =>
@@ -271,7 +304,7 @@ export async function handleGenerate(req, res) {
   }
   try {
     const body = await readJson(req);
-    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices), cleanUsedPoin(body.usedPoin));
+    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices), cleanUsedPoin(body.usedPoin), body.plan);
     send(res, 200, { cases, provider: pickProvider() });
   } catch (e) {
     const code = e.code || "server_error";

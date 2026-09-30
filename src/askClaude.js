@@ -40,20 +40,33 @@ export async function getAsker() {
     provider: info.provider || null, // "gemini" | "claude" | null
     // The server builds its own prompts (one per case for Gemini), so it
     // only needs the previous set to avoid repeating it.
-    ask: async ({ previousCases, indices, usedPoin }, { signal } = {}) => {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ previousCases, indices, usedPoin }),
-        signal,
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const err = new Error(body.error || `Server error ${res.status}`);
-        err.code = body.code || "server_error";
-        throw err;
-      }
-      return body;
+    // One request per case, in parallel: Netlify's free tier cuts a function
+    // off after 10 s, and a whole set in one call often took longer (502).
+    ask: async ({ previousCases, indices, usedPoin, plans }, { signal, onProgress } = {}) => {
+      const idx = Array.isArray(indices) && indices.length ? indices : null;
+      if (!idx) throw Object.assign(new Error("indices kosong"), { code: "bad_request" });
+      let done = 0;
+      const one = async (i, kIdx, attempt = 1) => {
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ previousCases, indices: [i], usedPoin, plan: plans ? plans[kIdx] : undefined }),
+          signal,
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok) {
+          const gateway = res.status === 502 || res.status === 504 || (body && body.code === "timeout");
+          if (gateway && attempt < 3) return one(i, kIdx, attempt + 1); // retry twice on a timeout
+          const err = new Error((body && body.error) || (gateway ? "Server kehabisan waktu." : `Server error ${res.status}`));
+          err.code = (body && body.code) || (gateway ? "timeout" : "server_error");
+          throw err;
+        }
+        done++;
+        onProgress && onProgress({ done, total: idx.length });
+        return body.cases[0];
+      };
+      const cases = await Promise.all(idx.map((i, kIdx) => one(i, kIdx)));
+      return { cases };
     },
   };
 }
@@ -77,6 +90,8 @@ export function describeError(e) {
       return "Balasan Claude tidak bisa dibaca sebagai soal. Coba lagi.";
     case "refused":
       return "Claude menolak permintaan ini.";
+    case "timeout":
+      return "Server kehabisan waktu saat meminta Gemini. Coba lagi; kalau berulang, pilih 1 kasus per topik.";
     case "missing_api_key":
       return "Server belum punya API key. Lokal: isi GEMINI_API_KEY di file .env. Netlify: tambahkan GEMINI_API_KEY di Environment variables dengan scope Functions, lalu deploy ulang.";
     default:
