@@ -171,11 +171,16 @@ export const ALL_INDICES = CASE_PLAN.map((_, i) => i);
  * Which plan slots to regenerate for a scope: "semua" = every case,
  * "satu" = one random case per topic, the rest of the set is kept.
  */
-export function indicesForScope(scope) {
+export function indicesForScope(scope, lastIndices = []) {
   if (scope !== "satu") return ALL_INDICES;
+  const last = new Set(lastIndices);
   return TOPICS.map((t) => {
     const slots = CASE_PLAN.map((p, i) => (p.topic === t ? i : -1)).filter((i) => i >= 0);
-    return slots[Math.floor(Math.random() * slots.length)];
+    // Rotate: prefer the slot that was NOT regenerated last time, so two
+    // presses in a row refresh every case of the topic.
+    const fresh = slots.filter((i) => !last.has(i));
+    const pool = fresh.length ? fresh : slots;
+    return pool[Math.floor(Math.random() * pool.length)];
   })
     .filter((i) => i !== undefined)
     .sort((a, b) => a - b);

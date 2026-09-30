@@ -5,6 +5,23 @@ import { getAsker, describeError } from "./askClaude.js";
 
 const STORAGE_KEY = "kuis.generated.v1";
 const USED_KEY = "kuis.usedPoin.v1";
+const LAST_KEY = "kuis.lastIndices.v1";
+
+const loadLast = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(LAST_KEY) || "[]");
+    return Array.isArray(v) ? v.map(Number).filter(Number.isInteger) : [];
+  } catch {
+    return [];
+  }
+};
+const saveLast = (list) => {
+  try {
+    localStorage.setItem(LAST_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+};
 
 const loadUsed = () => {
   try {
@@ -76,6 +93,7 @@ export default function Kuis() {
   const [gen, setGen] = useState({ status: "idle" });
   const [scope, setScope] = useState("satu"); // "satu" = 1 kasus per topik, "semua"
   const [usedPoin, setUsedPoin] = useState(loadUsed); // slide points already tested
+  const [lastIndices, setLastIndices] = useState(loadLast); // slots regenerated last time
   const [elapsed, setElapsed] = useState(0);
   const abortRef = useRef(null);
 
@@ -141,7 +159,7 @@ export default function Kuis() {
     abortRef.current = ctl;
     setGen({ status: "loading", chars: 0 });
     try {
-      const indices = indicesForScope(scope);
+      const indices = indicesForScope(scope, lastIndices);
       const used = usedPoinFrom(cases, usedPoin);
       // The server plans its own points; only the artifact path needs plans here.
       const plans = asker.source === "server" ? null : buildPlans(indices, used);
@@ -154,6 +172,8 @@ export default function Kuis() {
       const nextUsed = [...used, ...fresh.flatMap((c) => c.poin || [])].slice(-200);
       setUsedPoin(nextUsed);
       saveUsed(nextUsed);
+      setLastIndices(indices);
+      saveLast(indices);
       // Replace only the regenerated slots; the other cases stay as they are.
       const merged = cases.map((c) => fresh.find((f) => f.id === c.id) || c);
       setCases(merged);
@@ -243,7 +263,7 @@ export default function Kuis() {
                 </p>
                 <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Berapa kasus yang diacak">
                   {[
-                    ["satu", "1 kasus per topik", "4 kasus baru"],
+                    ["satu", "1 kasus per topik", "4 kasus baru, bergantian tiap acak"],
                     ["semua", "Semua kasus", "7 kasus baru"],
                   ].map(([v, label, sub]) => (
                     <button
