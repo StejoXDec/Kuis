@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { BUILTIN_CASES } from "./cases.js";
-import { TOPICS, buildPrompt, normalizeCases } from "./generator.js";
+import { TOPICS, buildPrompt, normalizeCases, indicesForScope } from "./generator.js";
 import { getAsker, describeError } from "./askClaude.js";
 
 const STORAGE_KEY = "kuis.generated.v1";
@@ -57,6 +57,7 @@ export default function Kuis() {
   // Claude generator
   const [asker, setAsker] = useState(undefined); // undefined = still resolving
   const [gen, setGen] = useState({ status: "idle" });
+  const [scope, setScope] = useState("satu"); // "satu" = 1 kasus per topik, "semua"
   const [elapsed, setElapsed] = useState(0);
   const abortRef = useRef(null);
 
@@ -122,16 +123,19 @@ export default function Kuis() {
     abortRef.current = ctl;
     setGen({ status: "loading", chars: 0 });
     try {
-      const data = await asker.ask({ prompt: buildPrompt(cases), previousCases: cases }, {
+      const indices = indicesForScope(scope);
+      const data = await asker.ask({ prompt: buildPrompt(cases, indices), previousCases: cases, indices }, {
         signal: ctl.signal,
         onText: ({ text }) => setGen({ status: "loading", chars: text.length }),
       });
-      const fresh = normalizeCases(data);
-      setCases(fresh);
-      saveSet(fresh);
-      setSetInfo({ kind: "generated", at: Date.now() });
+      const fresh = normalizeCases(data, indices);
+      // Replace only the regenerated slots; the other cases stay as they are.
+      const merged = cases.map((c) => fresh.find((f) => f.id === c.id) || c);
+      setCases(merged);
+      saveSet(merged);
+      setSetInfo({ kind: "generated", at: Date.now(), k: fresh.length });
       setStarted(false);
-      setGen({ status: "done", n: fresh.reduce((s, x) => s + x.questions.length, 0) });
+      setGen({ status: "done", n: fresh.reduce((s, x) => s + x.questions.length, 0), k: fresh.length });
     } catch (e) {
       if (e && e.code === "cancelled") setGen({ status: "idle" });
       else setGen({ status: "error", message: describeError(e) });
@@ -166,7 +170,7 @@ export default function Kuis() {
   if (!started) {
     const setLabel =
       setInfo.kind === "generated"
-        ? `Set buatan ${who} · ${new Date(setInfo.at).toLocaleString("id-ID", {
+        ? `${setInfo.k ? `${setInfo.k} kasus dari ${who}` : `Set buatan ${who}`} · ${new Date(setInfo.at).toLocaleString("id-ID", {
             day: "numeric",
             month: "short",
             hour: "2-digit",
@@ -209,10 +213,30 @@ export default function Kuis() {
             ) : (
               <>
                 <p className="mt-3 text-sm text-slate-700">
-                  Minta {who} menyusun set soal yang benar-benar baru: pasien, skenario,
-                  pertanyaan, pilihan, dan pembahasan semuanya berubah, dengan topik dan
-                  jumlah soal yang sama.
+                  Minta {who} menyusun kasus baru dari materi PPT dengan soal yang rawan
+                  keluar ujian. Kasus yang tidak diacak tetap seperti sekarang.
                 </p>
+                <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Berapa kasus yang diacak">
+                  {[
+                    ["satu", "1 kasus per topik", "4 kasus baru"],
+                    ["semua", "Semua kasus", "7 kasus baru"],
+                  ].map(([v, label, sub]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={scope === v}
+                      disabled={loading}
+                      onClick={() => setScope(v)}
+                      className={`rounded-xl border-2 px-3 py-2 text-left text-sm ${
+                        scope === v ? "border-teal-700 bg-white" : "border-slate-200 bg-white/60 text-slate-600"
+                      }`}
+                    >
+                      <span className="block font-semibold">{label}</span>
+                      <span className="block text-xs text-slate-500">{sub}</span>
+                    </button>
+                  ))}
+                </div>
                 {!loading ? (
                   <button
                     onClick={generate}
@@ -251,7 +275,7 @@ export default function Kuis() {
                 )}
                 {gen.status === "done" && (
                   <p className="mt-2 text-sm text-green-800" role="status">
-                    Set baru siap: {gen.n} soal. Pilih topik di bawah untuk mulai.
+                    {gen.k} kasus baru siap, {gen.n} soal. Pilih topik di bawah untuk mulai.
                   </p>
                 )}
               </>

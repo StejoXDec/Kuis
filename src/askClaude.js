@@ -40,11 +40,11 @@ export async function getAsker() {
     provider: info.provider || null, // "gemini" | "claude" | null
     // The server builds its own prompts (one per case for Gemini), so it
     // only needs the previous set to avoid repeating it.
-    ask: async ({ previousCases }, { signal } = {}) => {
+    ask: async ({ previousCases, indices }, { signal } = {}) => {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ previousCases }),
+        body: JSON.stringify({ previousCases, indices }),
         signal,
       });
       const body = await res.json().catch(() => ({}));

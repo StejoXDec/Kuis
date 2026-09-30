@@ -4,8 +4,10 @@
 //   - Bahan Ajar Hepatitis A dan Hepatitis B
 //
 // Dipakai sebagai satu-satunya sumber fakta saat AI menyusun soal baru.
-// `ringkasan` masuk ke prompt utuh; `poin` adalah daftar hal yang bisa diuji,
-// dipilih acak per kasus supaya setiap set menyentuh bagian materi yang beda.
+// `ringkasan` masuk ke prompt utuh. `poinUjian` adalah hal-hal yang paling
+// mungkin ditanyakan dosen di ujian (keputusan klinis, lini pertama, dosis,
+// alur, interaksi, serologi, vaksin); `poinTambahan` adalah pelengkap yang
+// jarang diujikan. Poin dipilih acak per kasus, mengutamakan poinUjian.
 
 export const MATERI = {
   GERD: {
@@ -31,7 +33,7 @@ PPI INTERAKSI (Lexidrug 2025 di slide): pantoprazol menurunkan efektivitas clopi
 H2RA FARMAKOLOGI (Lexidrug 2025): ranitidin, simetidin, famotidin menghambat reseptor H2 sel parietal. Bioavailabilitas ranitidin 50%, simetidin 60-70%, famotidin 40-50%. Ikatan protein 15-20%. Ekskresi urine sebagai obat utuh: ranitidin 35%, simetidin 48%, famotidin 25-30% oral dan 65-70% IV. Waktu paruh 2-3,5 jam. Efek samping: sakit kepala, mengantuk, kelelahan, pusing, konstipasi atau diare; efek SSP lebih mungkin pada usia di atas 50 tahun atau gangguan ginjal/hati; defisiensi B12 pada terapi lama dosis tinggi; simetidin ginekomastia. Interaksi: H2RA menurunkan kadar ketokonazol, risiko D pertimbangkan modifikasi terapi, karena ketokonazol butuh asam untuk absorpsi.
 ANTASIDA: diare atau konstipasi tergantung produk, gangguan mineral, gangguan asam basa; hati-hati antasida aluminium dan kalsium pada gangguan ginjal; aluminium mengikat fosfat dan dapat menyebabkan demineralisasi tulang; pantau kalsium dan fosfat pada terapi kronik.
 KASUS SOAP DI SLIDE: Tn. M 37 tahun, TB 160 cm, BB 80 kg, nyeri epigastrik 4-6 minggu setelah makan malam, muntah saat tiduran menonton TV, gejala muncul setelah makan cokelat malam hari, skala nyeri 4, diagnosis GERD, terapi asam mefenamat 500 mg 3 kali 1, antasida 3 kali 1, domperidon 3 kali 1. Masalah: obesitas, NSAID memperburuk GERD, belum ada PPI.`,
-    poin: [
+    poinUjian: [
       "alur GERD di layanan primer: GERD-Q, alarm symptom, PPI test, terapi 8 minggu, kapan rujuk",
       "cara skoring GERD-Q termasuk dua item yang skornya terbalik dan ambang 8-18",
       "alarm symptom yang mengharuskan rujukan atau endoskopi dengan biopsi",
@@ -47,15 +49,17 @@ KASUS SOAP DI SLIDE: Tn. M 37 tahun, TB 160 cm, BB 80 kg, nyeri epigastrik 4-6 m
       "H2RA dosis tinggi 8-12 minggu dan mengapa PPI lebih dipilih daripada H2RA dosis tinggi",
       "reflux chest syndrome mulai PPI dua kali sehari; gejala ekstraesofageal perlu endoskopi biopsi",
       "pasien tidak respons terapi: manometri dan ambulatory reflux monitoring; opsi bedah antirefluks dan bariatrik",
-      "farmakokinetik PPI: metabolisme CYP2C19 dan CYP3A4, waktu paruh pendek tetapi efek lebih dari 24 jam, pengaruh makanan",
       "efek samping PPI jangka panjang: hipomagnesemia, fraktur, defisiensi B12, pneumonia komunitas, infeksi enterik, dan parameter pemantauannya",
       "interaksi pantoprazol dengan clopidogrel risiko C menurut slide Lexidrug",
       "interaksi H2RA dengan ketokonazol risiko D dan alasannya",
       "efek samping H2RA termasuk efek SSP pada lansia dan gangguan ginjal, ginekomastia simetidin",
       "risiko antasida aluminium dan kalsium pada gangguan ginjal serta demineralisasi tulang",
+      "kasus SOAP Tn. M: obesitas, asam mefenamat memperburuk GERD, cokelat malam hari, perlunya PPI",
+    ],
+    poinTambahan: [
       "potassium competitive acid blocker: vonoprazan 10-20 mg, tegoprazan 50 mg, revaprazan 200 mg",
       "dosis PPI anak dan famotidin anak 0,5 mg/kg/hari",
-      "kasus SOAP Tn. M: obesitas, asam mefenamat memperburuk GERD, cokelat malam hari, perlunya PPI",
+      "farmakokinetik PPI: metabolisme CYP2C19 dan CYP3A4, waktu paruh pendek tetapi efek lebih dari 24 jam, pengaruh makanan",
       "tujuan pengobatan GERD dan urutan tes diagnostik",
     ],
   },
@@ -76,7 +80,7 @@ MISOPROSTOL (Lexidrug 2025): meningkatkan mukus pelindung dan menurunkan asam; m
 SITOPROTEKTIF (Makmun 2021): sukralfat berikatan dengan protein eksudat ulkus membentuk lapisan adhesif, 1.000 mg 3 kali sehari oral, dapat mengikat obat lain sehingga beri jeda sekitar 2 jam; rebamipide meningkatkan ekspresi EGF dan EGFR, merangsang mukus dan perfusi submukosa, 100 mg 3 kali sehari oral, adjuvan regenerasi epitel.
 KOMPLIKASI PERDARAHAN (Makmun 2021): komplikasi tersering, sekitar 15% pasien, mortalitas 5-10% dalam 30 hari; selain endoskopi, supresi asam penting; asam mendukung pepsin yang mendegradasi bekuan fibrin; target pH mukosa lebih dari 6 agar hemostasis primer tercapai; PPI pilihan utama karena mempertahankan pH lebih dari 6 lebih lama daripada H2 blocker.
 KOMPLIKASI PERFORASI (Makmun 2021): trias nyeri perut, takikardia, rigiditas abdomen; demam dan leukositosis menyertai peritonitis sekunder; CT abdomen lebih sensitif mendeteksi udara bebas, foto polos tidak selalu menunjukkan udara subdiafragma; tatalaksana awal NPO, selang nasogastrik, resusitasi cairan, PPI IV, antibiotik spektrum luas, konsultasi bedah secara simultan; kondisi gawat bedah.`,
-    poin: [
+    poinUjian: [
       "definisi ulkus: diameter lebih dari 5 mm, peran asam dan pepsin",
       "pola nyeri PUD: perut kosong, malam hari, mereda setelah makan atau antasida",
       "alur Dipiro untuk pasien gejala ulkus tanpa alarm symptom yang memakai NSAID",
@@ -91,17 +95,19 @@ KOMPLIKASI PERFORASI (Makmun 2021): trias nyeri perut, takikardia, rigiditas abd
       "dosis awal dan rentang PPI untuk ulkus serta penyesuaian pada penyakit hati berat",
       "dosis H2RA untuk ulkus termasuk dosis tunggal malam hari dan penyesuaian ginjal",
       "sukralfat: dosis 1 g 4 kali atau 2 g 2 kali, jeda 2 jam dari obat lain, aluminium pada gagal ginjal, bezoar",
-      "rebamipide 100 mg 3 kali sehari dan mekanismenya lewat EGF",
       "misoprostol: dosis 100-200 mcg 4 kali sehari, kategori X, diare, tes kehamilan dan fosfat",
       "interaksi misoprostol dengan antasida magnesium risiko X",
-      "farmakokinetik misoprostol: makanan mengurangi absorpsi, waktu paruh 20-40 menit",
-      "data Ko & Lee 2025: penurunan ulkus duodenum dan lambung dengan misoprostol dan alasan sering dihentikan",
       "tatalaksana ulkus akibat OAINS: skrining H. pylori, COX-2 selektif, asetaminofen, dosis profilaksis PPI",
       "monitoring PPI pada PUD: CBC, elektrolit, fungsi ginjal hati, C. difficile",
-      "efek samping H2RA jarang: pankreatitis, trombositopenia; ginekomastia simetidin",
       "perdarahan ulkus: 15% pasien, mortalitas 5-10%, target pH lebih dari 6, mengapa PPI bukan H2 blocker",
       "perforasi: trias klinis, tanda peritonitis, CT abdomen, tatalaksana awal simultan",
       "penyebab utama PUD dan terapi non farmakologi",
+    ],
+    poinTambahan: [
+      "data Ko & Lee 2025: penurunan ulkus duodenum dan lambung dengan misoprostol dan alasan sering dihentikan",
+      "farmakokinetik misoprostol: makanan mengurangi absorpsi, waktu paruh 20-40 menit",
+      "rebamipide 100 mg 3 kali sehari dan mekanismenya lewat EGF",
+      "efek samping H2RA jarang: pankreatitis, trombositopenia; ginekomastia simetidin",
     ],
   },
 
@@ -116,23 +122,25 @@ TATALAKSANA: terapi suportif dan pemantauan; tidak ada antivirus spesifik. Pence
 INDIKASI VAKSIN (Dipiro Tabel 58-2): semua anak usia 1 tahun; anak 2-18 tahun yang belum divaksin; pelancong atau pekerja ke negara endemisitas tinggi atau sedang; laki-laki yang berhubungan seks dengan laki-laki; pengguna narkoba suntik maupun bukan suntik; risiko pekerjaan seperti bekerja dengan primata terinfeksi HAV atau di laboratorium HAV; penyakit hati kronis termasuk hepatitis B dan C; kontak dekat dengan anak adopsi internasional dari negara endemis dalam 60 hari pertama; siapa pun yang ingin vaksin. Pelancong ke Kanada, Eropa Barat, Jepang, Australia, Selandia Baru tidak berisiko lebih tinggi.
 DOSIS VAKSIN (Dipiro Tabel 58-3): HAVRIX usia 1-18 tahun 720 ELISA unit 0,5 mL, 2 dosis, jadwal 0 dan 6-12 bulan; HAVRIX usia 19 tahun ke atas 1.440 ELISA unit 1 mL, 2 dosis, 0 dan 6-12 bulan. VAQTA usia 1-18 tahun 25 unit 0,5 mL, 2 dosis, 0 dan 6-18 bulan; VAQTA 19 tahun ke atas 50 unit 1 mL, 2 dosis, 0 dan 6-18 bulan. TWINRIX kombinasi A dan B usia 18 tahun ke atas 720 ELISA unit 1 mL, 3 dosis, 0, 1, 6 bulan; jadwal dipercepat 4 dosis hari 0, 7, 21-30, dan booster 12 bulan; TWINRIX juga mengandung 20 mcg HBsAg dan butuh 3 dosis untuk respons HBV adekuat.
 MEREK DI INDONESIA (Imuni 2025): AVAXIM 80U pediatrik dan 160 U dewasa produksi Sanofi; HAVRIX 720 dan 1440 produksi GSK; TWINRIX kombinasi A dan B produksi GSK. TWINRIX anak 2-15 tahun 2 dosis jarak 6 bulan; usia lebih dari 16 tahun dan dewasa 3 dosis jarak 0, 1, 6 bulan.`,
-    poin: [
+    poinUjian: [
       "karakter virus HAV: RNA, tanpa selubung, picornavirus, self-limiting",
       "cara penularan fekal-oral dan masa inkubasi 15-50 hari rata-rata 28-30 hari",
-      "kelompok berisiko dan epidemiologi: anak daerah endemik, pelancong, sanitasi buruk, efek vaksinasi 95%",
       "tiga fase klinis: prodromal, ikterik, recovery beserta durasi dan gejalanya",
       "interpretasi IgM anti-HAV versus IgG anti-HAV dalam skenario yang berbeda",
       "pemeriksaan laboratorium pendukung: ALT AST, bilirubin total, darah lengkap",
       "prinsip tatalaksana: suportif, tanpa antivirus spesifik, pemantauan",
       "pencegahan: vaksinasi, higienitas, sanitasi, edukasi",
       "indikasi vaksinasi hepatitis A menurut Dipiro Tabel 58-2, termasuk penyakit hati kronis dan risiko pekerjaan",
-      "negara tujuan yang tidak menambah risiko: Kanada, Eropa Barat, Jepang, Australia, Selandia Baru",
       "dosis HAVRIX anak 720 ELISA unit 0,5 mL versus dewasa 1.440 ELISA unit 1 mL, jadwal 0 dan 6-12 bulan",
       "dosis VAQTA anak 25 unit 0,5 mL versus dewasa 50 unit 1 mL, jadwal 0 dan 6-18 bulan",
       "TWINRIX standar 3 dosis 0, 1, 6 bulan versus jadwal dipercepat 4 dosis hari 0, 7, 21-30, dan 12 bulan",
       "TWINRIX mengandung 20 mcg HBsAg dan butuh 3 dosis untuk respons hepatitis B",
-      "merek vaksin hepatitis A di Indonesia: AVAXIM 80U dan 160 U, HAVRIX 720 dan 1440, produsen",
       "jadwal TWINRIX versi Imuni: anak 2-15 tahun 2 dosis jarak 6 bulan, dewasa 3 dosis",
+    ],
+    poinTambahan: [
+      "kelompok berisiko dan epidemiologi: anak daerah endemik, pelancong, sanitasi buruk, efek vaksinasi 95%",
+      "negara tujuan yang tidak menambah risiko: Kanada, Eropa Barat, Jepang, Australia, Selandia Baru",
+      "merek vaksin hepatitis A di Indonesia: AVAXIM 80U dan 160 U, HAVRIX 720 dan 1440, produsen",
       "patofisiologi: replikasi di sitoplasma hepatosit, lisis akibat respons imun, imunitas seumur hidup",
     ],
   },
@@ -154,7 +162,7 @@ TERRAULT 2016 Tabel 4: peg-IFN kategori hamil C, efek samping flu-like, mood, si
 POPULASI KHUSUS (Menkes 2019): ibu hamil = tenofovir kategori B aman untuk pencegahan transmisi vertikal, entecavir kategori C pertimbangan risiko-manfaat; geriatri = sesuaikan dosis dengan fungsi ginjal, monitor ketat pada komorbiditas multipel; gangguan ginjal = reduksi dosis atau perpanjangan interval bila klirens kreatinin kurang dari 50 mL/menit.
 NON FARMAKOLOGI: vaksinasi keluarga dan kontak seksual dengan seri 3 dosis; eliminasi alkohol, diet seimbang, olahraga teratur, manajemen berat badan; monitoring HBV DNA, ALT, AFP tiap 3-6 bulan dan USG abdomen tiap 6 bulan untuk skrining HCC.
 VAKSIN HEPATITIS B (Imuni 2025): merek ENGERIX B GSK, VECON Bio Farma Indonesia 10 mcg pediatrik dan 20 mcg dewasa, EUVAX B Sanofi, TWINRIX GSK kombinasi. Jadwal anak: dosis 0 dalam 24 jam setelah lahir di rumah sakit, dosis 1 usia 2 bulan, dosis 2 usia 3 bulan, dosis 3 usia 4 bulan, dosis 4 usia 18 bulan booster; dapat lewat vaksin kombinasi INFANRIX HEXA, HEXAXIM, PENTABIO. Jadwal dewasa 3 dosis jarak 0, 1, 6 bulan. TWINRIX anak 2-15 tahun 2 dosis jarak 6 bulan; usia lebih dari 16 tahun 3 dosis 0, 1, 6 bulan.`,
-    poin: [
+    poinUjian: [
       "karakter virus HBV, jalur transmisi, dan masa inkubasi 45-180 hari rata-rata 60-90 hari",
       "empat fase hepatitis B kronis dan profil HBeAg, HBV DNA, ALT tiap fase",
       "arti tiap marker: HBsAg, anti-HBs, HBeAg, anti-HBe, anti-HBc IgM, HBV DNA",
@@ -177,6 +185,8 @@ VAKSIN HEPATITIS B (Imuni 2025): merek ENGERIX B GSK, VECON Bio Farma Indonesia 
       "monitoring berkala pasien kronis: HBV DNA, ALT, AFP tiap 3-6 bulan, USG tiap 6 bulan",
       "vaksinasi kontak serumah dan pasangan seksual: seri 3 dosis 0, 1, 6 bulan",
       "jadwal vaksin hepatitis B bayi: 24 jam setelah lahir, 2, 3, 4 bulan, booster 18 bulan",
+    ],
+    poinTambahan: [
       "merek vaksin hepatitis B: ENGERIX B, VECON 10 dan 20 mcg, EUVAX B, kombinasi INFANRIX HEXA, HEXAXIM, PENTABIO",
       "epidemiologi: 296 juta, 820 ribu kematian, Asia Tenggara 60 juta; 70% asimtomatik, 15% komplikasi",
       "patofisiologi: reseptor NTCP, cccDNA, sel T sitotoksik, fibrosis",
@@ -185,12 +195,20 @@ VAKSIN HEPATITIS B (Imuni 2025): merek ENGERIX B GSK, VECON Bio Farma Indonesia 
   },
 };
 
-/** Random sample of `k` testable points for a topic. */
+/**
+ * Random sample of `k` points for a topic. Exam-likely points first; the
+ * secondary pool is used only when a set needs more points than that list
+ * holds, or for one question in five so the extras still show up sometimes.
+ */
 export function pickPoin(topic, k) {
-  const list = [...((MATERI[topic] && MATERI[topic].poin) || [])];
+  const m = MATERI[topic] || {};
+  const shuffle = (a) => a.map((x) => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map((p) => p[1]);
+  const ujian = shuffle(m.poinUjian || []);
+  const extra = shuffle(m.poinTambahan || []);
   const out = [];
-  while (out.length < k && list.length) {
-    out.push(list.splice(Math.floor(Math.random() * list.length), 1)[0]);
+  while (out.length < k && (ujian.length || extra.length)) {
+    const useExtra = extra.length && (!ujian.length || Math.random() < 0.1);
+    out.push(useExtra ? extra.shift() : ujian.shift());
   }
   return out;
 }

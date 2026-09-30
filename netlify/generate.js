@@ -4,7 +4,7 @@
 //
 // Set GEMINI_API_KEY in Netlify: Site configuration > Environment variables.
 
-import { generateCases, pickProvider } from "../api/generate.js";
+import { generateCases, pickProvider, cleanIndices } from "../api/generate.js";
 
 const STATUS = { missing_api_key: 500, rate_limited: 429, refused: 422, invalid_json: 502, upstream_error: 502, empty_completion: 502 };
 
@@ -27,7 +27,7 @@ export default async (req) => {
   if (req.method !== "POST") return json(405, { error: "Use POST", code: "method_not_allowed" });
   try {
     const body = await req.json().catch(() => ({}));
-    const cases = await generateCases(slimCases(body.previousCases));
+    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices));
     return json(200, { cases, provider: pickProvider() });
   } catch (e) {
     const code = e.code || "server_error";

@@ -8,6 +8,7 @@
 // Override with AI_PROVIDER=gemini|claude.
 
 import {
+  ALL_INDICES,
   CASE_PLAN,
   CASE_SCHEMA,
   CASES_SCHEMA,
@@ -149,13 +150,13 @@ async function geminiWithFallback(prompt, schema, opts) {
  * plan, all in parallel. A 20 KB single reply from the lite model broke its
  * JSON about half the time; 3 KB replies with a schema never did in testing.
  */
-export async function generateWithGemini(previousCases, { fetchImpl = fetch, apiKey = process.env.GEMINI_API_KEY, models = geminiModels() } = {}) {
+export async function generateWithGemini(previousCases, { fetchImpl = fetch, apiKey = process.env.GEMINI_API_KEY, models = geminiModels(), indices = ALL_INDICES } = {}) {
   if (!apiKey) throw withCode("GEMINI_API_KEY belum diset di server.", "missing_api_key");
   const opts = { fetchImpl, apiKey, models };
   const cases = await Promise.all(
-    CASE_PLAN.map((_, i) => geminiWithFallback(buildCasePrompt(previousCases, i), CASE_SCHEMA, opts))
+    indices.map((i) => geminiWithFallback(buildCasePrompt(previousCases, i), CASE_SCHEMA, opts))
   );
-  return normalizeCases(cases);
+  return normalizeCases(cases, indices);
 }
 
 // ---------- Claude ----------
@@ -168,7 +169,7 @@ const getAnthropic = async () => {
   return { Anthropic: anthropicModule, client: anthropicClient };
 };
 
-export async function generateWithClaude(previousCases) {
+export async function generateWithClaude(previousCases, indices = ALL_INDICES) {
   const { Anthropic, client } = await getAnthropic();
   try {
     const stream = client.beta.messages.stream({
@@ -181,7 +182,7 @@ export async function generateWithClaude(previousCases) {
         effort: "medium",
         format: { type: "json_schema", schema: CASES_SCHEMA },
       },
-      messages: [{ role: "user", content: buildPrompt(previousCases) }],
+      messages: [{ role: "user", content: buildPrompt(previousCases, indices) }],
     });
     const message = await stream.finalMessage();
 
@@ -189,7 +190,7 @@ export async function generateWithClaude(previousCases) {
     if (message.stop_reason === "max_tokens") throw withCode("Balasan terpotong. Coba lagi.", "invalid_json");
 
     const text = message.content.filter((b) => b.type === "text").map((b) => b.text).join("");
-    return normalizeCases(parseJsonLoose(text));
+    return normalizeCases(parseJsonLoose(text), indices);
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) throw withCode("ANTHROPIC_API_KEY tidak valid.", "missing_api_key");
     if (e instanceof Anthropic.RateLimitError) throw withCode("Rate limit Claude API tercapai.", "rate_limited");
@@ -200,10 +201,18 @@ export async function generateWithClaude(previousCases) {
 
 // ---------- shared ----------
 
-export async function generateCases(previousCases = []) {
+export const cleanIndices = (list) => {
+  const ok = (Array.isArray(list) ? list : [])
+    .map(Number)
+    .filter((i) => Number.isInteger(i) && i >= 0 && i < CASE_PLAN.length);
+  const uniq = [...new Set(ok)].sort((x, y) => x - y);
+  return uniq.length ? uniq : ALL_INDICES;
+};
+
+export async function generateCases(previousCases = [], indices = ALL_INDICES) {
   const provider = pickProvider();
-  if (provider === "gemini") return generateWithGemini(previousCases);
-  if (provider === "claude") return generateWithClaude(previousCases);
+  if (provider === "gemini") return generateWithGemini(previousCases, { indices });
+  if (provider === "claude") return generateWithClaude(previousCases, indices);
   throw withCode("Belum ada API key. Isi GEMINI_API_KEY di file .env.", "missing_api_key");
 }
 
@@ -254,7 +263,7 @@ export async function handleGenerate(req, res) {
   }
   try {
     const body = await readJson(req);
-    const cases = await generateCases(slimCases(body.previousCases));
+    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices));
     send(res, 200, { cases, provider: pickProvider() });
   } catch (e) {
     const code = e.code || "server_error";

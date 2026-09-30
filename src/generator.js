@@ -81,7 +81,7 @@ const prevStemsOf = (previousCases) =>
 const RULES = `Aturan isi:
 - SUMBER FAKTA: semua fakta, angka, dosis, jadwal, kategori risiko, dan istilah HARUS diambil dari MATERI KULIAH di bawah. Jangan menambahkan fakta dari luar materi. Bila sebuah poin tidak ada di materi, jangan diuji.
 - Setiap kasus: "title" berupa inisial dan usia, contoh "Tn. B, 47 tahun"; "text" berupa vignette klinis 2–4 kalimat yang memuat semua data yang dibutuhkan untuk menjawab soal: keluhan, durasi, riwayat obat dengan nama dan dosis, komorbid, hasil pemeriksaan atau serologi bila relevan.
-- Setiap soal menguji SATU poin materi yang ditentukan di rencana, dengan pertanyaan penerapan pada pasien itu, bukan hafalan definisi. Contoh gaya yang diinginkan: "Langkah berikutnya menurut alur tatalaksana di layanan primer adalah…", "Regimen eradikasi yang paling sesuai untuk pasien ini adalah…", "Bila obat X dipakai bersama Y, yang terjadi adalah…", "Hasil serologi ini berarti…", "Pemantauan yang perlu dipertimbangkan bila terapi lebih dari 1 tahun adalah…".
+- Setiap soal menguji SATU poin materi yang ditentukan di rencana, dengan pertanyaan penerapan pada pasien itu seperti di ujian: memilih obat, dosis, langkah alur, interpretasi hasil, atau pemantauan. Tanyakan hal yang dosen tekankan, jangan tanyakan detail sepele. Contoh gaya yang diinginkan: "Langkah berikutnya menurut alur tatalaksana di layanan primer adalah…", "Regimen eradikasi yang paling sesuai untuk pasien ini adalah…", "Bila obat X dipakai bersama Y, yang terjadi adalah…", "Hasil serologi ini berarti…", "Pemantauan yang perlu dipertimbangkan bila terapi lebih dari 1 tahun adalah…".
 - Setiap soal: 4 pilihan (o), satu jawaban benar (a = indeks 0–3), dan pembahasan (e) 1–3 kalimat yang menjelaskan alasan jawaban benar, menyebut sumber persis seperti tertulis di materi, misalnya "Dipiro 12 ed hal 468" atau "Lexidrug 2025", dan menyinggung mengapa pengecoh utama salah.
 - Pengecoh harus berupa obat, dosis, angka, atau tindakan yang benar-benar ada di materi tetapi salah untuk konteks ini, misalnya dosis anak untuk dewasa, regimen lini kedua untuk pasien naif, kategori kehamilan obat lain.
 - DILARANG memakai tanda kurung ( ) di pertanyaan (q) maupun di semua pilihan jawaban (o). Tulis keterangan sebagai bagian kalimat, misalnya "Tenofovir, kategori kehamilan B". Jangan menaruh petunjuk di pilihan yang membuat jawaban benar terlihat beda dari pengecoh; panjang dan gaya semua pilihan harus setara.
@@ -89,7 +89,7 @@ const RULES = `Aturan isi:
 - Jangan menulis frasa seperti "menurut materi kuliah", "sesuai slide", atau "berdasarkan materi" di pertanyaan maupun pilihan. Di pembahasan sebut sumber aslinya, misalnya Dipiro, Makmun 2021, Kemenkes 2023, Lexidrug 2025, bukan kata "slide".
 - Gunakan simbol × untuk frekuensi, contoh 2×/hari, dan – untuk rentang.`;
 
-const INTRO = `Kamu adalah dosen farmakoterapi yang menyusun kuis kasus untuk mahasiswa S1 Farmasi, berdasarkan slide kuliah "Farmakoterapi Gangguan Saluran Cerna dan Nutrisi" tentang GERD, PUD, Hepatitis A, dan Hepatitis B.`;
+const INTRO = `Kamu adalah dosen farmakoterapi yang menyusun SOAL UJIAN kasus untuk mahasiswa S1 Farmasi, berdasarkan slide kuliah "Farmakoterapi Gangguan Saluran Cerna dan Nutrisi" tentang GERD, PUD, Hepatitis A, dan Hepatitis B. Capaian pembelajaran di slide: mahasiswa mampu menjelaskan definisi dan patofisiologi, menjelaskan tatalaksana, mengetahui efek samping obat, dan menyelesaikan kasus dengan metode SOAP. Soal harus seperti soal UTS/UAS yang benar-benar mungkin ditanyakan dosen: hal-hal yang UMUM dan DITEKANKAN di slide seperti alur tatalaksana, obat lini pertama beserta dosis dan durasi, regimen eradikasi, interaksi obat dengan kategori risikonya, efek samping dan pemantauan, interpretasi serologi, jadwal dan dosis vaksin, kategori kehamilan, serta komplikasi. Hindari trivia yang tidak mungkin diujikan seperti angka epidemiologi, nama produsen, atau detail farmakokinetik yang tidak berdampak klinis.`;
 
 const NOVELTY = `harus benar-benar baru dan berbeda dari set sebelumnya: pasien dengan inisial, usia, jenis kelamin, pekerjaan, dan komorbid yang lain; latar layanan yang lain; alur cerita yang lain; dan poin materi yang diuji juga berbeda. Jangan mengulang atau memparafrasakan soal lama.`;
 
@@ -110,18 +110,36 @@ const nonce = () => Math.random().toString(36).slice(2, 8);
  * Prompt for the whole set in one reply (used by the claude.ai artifact and
  * the Claude API path). `previousCases` is the set the student just used.
  */
-export function buildPrompt(previousCases = []) {
+export const ALL_INDICES = CASE_PLAN.map((_, i) => i);
+
+/**
+ * Which plan slots to regenerate for a scope: "semua" = every case,
+ * "satu" = one random case per topic, the rest of the set is kept.
+ */
+export function indicesForScope(scope) {
+  if (scope !== "satu") return ALL_INDICES;
+  return TOPICS.map((t) => {
+    const slots = CASE_PLAN.map((p, i) => (p.topic === t ? i : -1)).filter((i) => i >= 0);
+    return slots[Math.floor(Math.random() * slots.length)];
+  })
+    .filter((i) => i !== undefined)
+    .sort((a, b) => a - b);
+}
+
+export function buildPrompt(previousCases = [], indices = ALL_INDICES) {
+  const plan = indices.map((i) => CASE_PLAN[i]);
+  const topics = TOPICS.filter((t) => plan.some((p) => p.topic === t));
   return `${INTRO}
 
-Buat SATU SET BARU soal kasus klinis dalam bahasa Indonesia tentang GERD, PUD (tukak peptik), Hepatitis A, dan Hepatitis B. Set ini ${NOVELTY}
+Buat ${plan.length} kasus klinis BARU dalam bahasa Indonesia untuk kuis. Kasus-kasus ini ${NOVELTY}
 
 Rencana set (ikuti persis urutan, topik, dan jumlah soal per kasus):
-${CASE_PLAN.map(planLine).join("\n")}
+${plan.map(planLine).join("\n")}
 
 ${RULES}
 
 MATERI KULIAH:
-${materiBlock(TOPICS)}
+${materiBlock(topics)}
 
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
 ${prevStemsOf(previousCases)}
@@ -129,7 +147,7 @@ ${prevStemsOf(previousCases)}
 Balas HANYA dengan JSON valid berbentuk:
 {"cases":[{"topic":"GERD","title":"...","text":"...","questions":[{"q":"...","o":["...","...","...","..."],"a":0,"e":"..."}]}]}
 
-Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce()}`;
+Tepat ${plan.length} kasus, urutannya sama dengan rencana. Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce()}`;
 }
 
 /**
@@ -184,19 +202,20 @@ export function stripParens(s) {
  * Validate and normalise a reply. Returns an array of cases in the same
  * shape as the built-in set, or throws with a readable message.
  */
-export function normalizeCases(data) {
+export function normalizeCases(data, indices = ALL_INDICES) {
   const cases = Array.isArray(data) ? data : data && data.cases;
   if (!Array.isArray(cases) || cases.length === 0) {
     throw new Error("Balasan tidak berisi daftar kasus.");
   }
-  if (cases.length < CASE_PLAN.length) {
+  if (cases.length < indices.length) {
     throw new Error(
-      `Balasan hanya berisi ${cases.length} kasus, seharusnya ${CASE_PLAN.length}.`
+      `Balasan hanya berisi ${cases.length} kasus, seharusnya ${indices.length}.`
     );
   }
   // Classification always follows CASE_PLAN (same ids and topics as the
   // built-in set), whatever the model labelled them.
-  return cases.slice(0, CASE_PLAN.length).map((c, i) => {
+  return cases.slice(0, indices.length).map((c, k) => {
+    const i = indices[k];
     const plan = CASE_PLAN[i];
     if (!c || typeof c !== "object") throw new Error(`Kasus ${i + 1} tidak valid.`);
     const topic = plan.topic;
