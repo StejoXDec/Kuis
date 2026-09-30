@@ -27,7 +27,12 @@ Buka alamat yang ditampilkan (biasanya http://localhost:5173). Endpoint
 `/api/generate` ikut berjalan di server dev. Key hanya dibaca oleh server, tidak
 pernah dikirim ke browser. Tanpa key, kuis tetap jalan dengan set soal asli.
 
-Model default `gemini-2.5-flash`; ubah lewat `GEMINI_MODEL` di `.env`.
+Server mengirim satu permintaan kecil per kasus, 7 permintaan sekaligus, jadi
+satu set biasanya jadi dalam 10–20 detik. Model dicoba berurutan:
+`gemini-3.5-flash-lite`, lalu `gemini-3.5-flash`, `gemini-3.8-flash`,
+`gemini-flash-latest` bila yang sebelumnya penuh atau ditutup. Isi
+`GEMINI_MODEL` di `.env` (boleh beberapa, dipisah koma) untuk mendahulukan
+model lain.
 
 ## Provider lain
 
@@ -53,8 +58,10 @@ npm start
 - `src/generator.js`: rencana set (`CASE_PLAN`), prompt, skema JSON, validasi
   balasan, dan penghapusan tanda kurung.
 - `src/askClaude.js`: memilih jalur (artifact claude.ai atau `/api/generate`).
-- `api/generate.js`: handler Node; memanggil Gemini lewat REST atau Claude lewat
-  SDK resmi, keduanya dengan structured output JSON.
+- `api/generate.js`: handler Node; memanggil Gemini lewat REST (satu permintaan
+  per kasus, paralel, dengan skema JSON dan fallback model) atau Claude lewat SDK
+  resmi. Pilihan jawaban diacak ulang di sisi aplikasi supaya jawaban benar tidak
+  selalu di posisi yang sama.
 - `server.js`: server produksi.
 
 ## Menambah soal ke set asli

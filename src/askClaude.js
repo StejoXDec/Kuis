@@ -18,7 +18,7 @@ export async function getAsker() {
     if (sample) {
       return {
         source: "artifact",
-        ask: (prompt, { signal, onText } = {}) =>
+        ask: ({ prompt }, { signal, onText } = {}) =>
           sample.json(prompt, {
             signal,
             onText,
@@ -38,11 +38,13 @@ export async function getAsker() {
   return {
     source: "server",
     provider: info.provider || null, // "gemini" | "claude" | null
-    ask: async (prompt, { signal } = {}) => {
+    // The server builds its own prompts (one per case for Gemini), so it
+    // only needs the previous set to avoid repeating it.
+    ask: async ({ previousCases }, { signal } = {}) => {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ previousCases }),
         signal,
       });
       const body = await res.json().catch(() => ({}));

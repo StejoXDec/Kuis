@@ -122,7 +122,7 @@ export default function Kuis() {
     abortRef.current = ctl;
     setGen({ status: "loading", chars: 0 });
     try {
-      const data = await asker.ask(buildPrompt(cases), {
+      const data = await asker.ask({ prompt: buildPrompt(cases), previousCases: cases }, {
         signal: ctl.signal,
         onText: ({ text }) => setGen({ status: "loading", chars: text.length }),
       });

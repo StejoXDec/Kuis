@@ -52,12 +52,7 @@ const pick = (arr, k) => {
 
 // JSON schema for the whole reply. The Node handler passes this to the API as
 // a structured-output format; the browser uses it only for documentation.
-export const CASES_SCHEMA = {
-  type: "object",
-  properties: {
-    cases: {
-      type: "array",
-      items: {
+export const CASE_SCHEMA = {
         type: "object",
         properties: {
           topic: { type: "string", enum: TOPICS },
@@ -78,42 +73,25 @@ export const CASES_SCHEMA = {
             },
           },
         },
-        required: ["topic", "title", "text", "questions"],
-        additionalProperties: false,
-      },
-    },
-  },
+  required: ["topic", "title", "text", "questions"],
+  additionalProperties: false,
+};
+
+export const CASES_SCHEMA = {
+  type: "object",
+  properties: { cases: { type: "array", items: CASE_SCHEMA } },
   required: ["cases"],
   additionalProperties: false,
 };
 
-/**
- * Build the prompt for one fresh set. `previousCases` is the set the student
- * just used, so the new set can steer clear of it.
- */
-export function buildPrompt(previousCases = []) {
-  const prevStems = previousCases
+const prevStemsOf = (previousCases) =>
+  previousCases
     .flatMap((c) => [c.title, ...c.questions.map((q) => q.q)])
     .slice(0, 80)
     .map((s) => `- ${s}`)
-    .join("\n");
+    .join("\n") || "- (tidak ada)";
 
-  const plan = CASE_PLAN.map((p, i) => {
-    const angles = pick(ANGLES, 3).join("; ");
-    const setting = pick(SETTINGS, 1)[0];
-    return `${i + 1}. topic "${p.topic}", ${p.n} soal, latar: ${setting}, sudut pandang yang harus tercakup: ${angles}`;
-  }).join("\n");
-
-  const nonce = Math.random().toString(36).slice(2, 8);
-
-  return `Kamu adalah dosen farmakologi klinik/farmakoterapi yang menyusun kuis kasus untuk mahasiswa kedokteran dan farmasi di Indonesia.
-
-Buat SATU SET BARU soal kasus klinis dalam bahasa Indonesia tentang GERD, PUD (tukak peptik), Hepatitis A, dan Hepatitis B. Set ini harus benar-benar baru dan berbeda dari set sebelumnya dari segala sisi: pasien (nama inisial, usia, jenis kelamin, pekerjaan, komorbid), latar layanan, alur cerita kasus, sudut pandang pertanyaan, pilihan jawaban, dan pembahasan. Jangan mengulang atau memparafrasakan soal lama.
-
-Rencana set (ikuti persis urutan, topik, dan jumlah soal per kasus):
-${plan}
-
-Aturan isi:
+const RULES = `Aturan isi:
 - Setiap kasus: "title" berupa inisial dan usia (contoh: "Tn. B, 47 tahun"), "text" berupa skenario 2–4 kalimat yang memuat data klinis yang dibutuhkan untuk menjawab semua soal kasus itu.
 - Setiap soal: 4 pilihan (o), satu jawaban benar (a = indeks 0–3), dan pembahasan (e) 1–3 kalimat yang menjelaskan mengapa jawaban itu benar dan mengapa pengecoh salah bila relevan.
 - Sebarkan indeks jawaban benar secara merata; jangan menaruh jawaban benar di indeks yang sama untuk lebih dari dua soal berturut-turut.
@@ -121,15 +99,65 @@ Aturan isi:
 - DILARANG memakai tanda kurung ( ) di pertanyaan (q) maupun di semua pilihan jawaban (o). Tulis keterangan tambahan sebagai bagian kalimat biasa, misalnya "Tenofovir, kategori kehamilan B" bukan "Tenofovir (kategori B)". Jangan menaruh petunjuk di pilihan yang membuat jawaban benar terlihat berbeda dari pengecoh; semua pilihan harus panjang dan gayanya setara.
 - Konten harus sesuai konsensus dan pedoman yang umum dipakai di Indonesia dan internasional (Konsensus GERD Indonesia, pedoman eradikasi H. pylori, PNPK/Kemenkes 2023 untuk hepatitis B, EASL, ACIP untuk vaksin hepatitis A). Sebutkan dosis dan jadwal yang lazim. Jika ada perbedaan antar sumber, pilih yang paling umum diajarkan dan sebutkan singkat di pembahasan.
 - Cakup variasi: obat (PPI, H2RA, antasida, sukralfat, misoprostol, regimen eradikasi, tenofovir, entecavir, vaksin HAV/HBV/kombinasi, HBIG), pemantauan, interaksi, populasi khusus (hamil, lansia, gangguan ginjal), komplikasi, dan interpretasi serologi.
-- Gunakan simbol × untuk frekuensi (contoh: 2×/hari) dan – untuk rentang.
+- Gunakan simbol × untuk frekuensi (contoh: 2×/hari) dan – untuk rentang.`;
+
+const INTRO = `Kamu adalah dosen farmakologi klinik/farmakoterapi yang menyusun kuis kasus untuk mahasiswa kedokteran dan farmasi di Indonesia.`;
+
+const NOVELTY = `harus benar-benar baru dan berbeda dari set sebelumnya dari segala sisi: pasien (nama inisial, usia, jenis kelamin, pekerjaan, komorbid), latar layanan, alur cerita kasus, sudut pandang pertanyaan, pilihan jawaban, dan pembahasan. Jangan mengulang atau memparafrasakan soal lama.`;
+
+const planLine = (p, i) => {
+  const angles = pick(ANGLES, 3).join("; ");
+  const setting = pick(SETTINGS, 1)[0];
+  return `${i + 1}. topic "${p.topic}", ${p.n} soal, latar: ${setting}, sudut pandang yang harus tercakup: ${angles}`;
+};
+
+const nonce = () => Math.random().toString(36).slice(2, 8);
+
+/**
+ * Prompt for the whole set in one reply (used by the claude.ai artifact and
+ * the Claude API path). `previousCases` is the set the student just used.
+ */
+export function buildPrompt(previousCases = []) {
+  return `${INTRO}
+
+Buat SATU SET BARU soal kasus klinis dalam bahasa Indonesia tentang GERD, PUD (tukak peptik), Hepatitis A, dan Hepatitis B. Set ini ${NOVELTY}
+
+Rencana set (ikuti persis urutan, topik, dan jumlah soal per kasus):
+${CASE_PLAN.map(planLine).join("\n")}
+
+${RULES}
 
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
-${prevStems || "- (tidak ada)"}
+${prevStemsOf(previousCases)}
 
 Balas HANYA dengan JSON valid berbentuk:
 {"cases":[{"topic":"GERD","title":"...","text":"...","questions":[{"q":"...","o":["...","...","...","..."],"a":0,"e":"..."}]}]}
 
-Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce}`;
+Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce()}`;
+}
+
+/**
+ * Prompt for ONE case of the plan (index `i`). Small replies are far more
+ * reliable from small models, and the 7 requests can run in parallel.
+ */
+export function buildCasePrompt(previousCases = [], i) {
+  const p = CASE_PLAN[i];
+  return `${INTRO}
+
+Buat SATU kasus klinis baru dalam bahasa Indonesia untuk kuis. Kasus ini ${NOVELTY}
+
+Kasus yang diminta:
+${planLine(p, i)}
+
+${RULES}
+
+Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
+${prevStemsOf(previousCases)}
+
+Balas HANYA dengan JSON valid berbentuk:
+{"topic":"${p.topic}","title":"...","text":"...","questions":[{"q":"...","o":["...","...","...","..."],"a":0,"e":"..."}]}
+
+Tepat ${p.n} soal. Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce()}`;
 }
 
 /**
@@ -179,10 +207,13 @@ export function normalizeCases(data) {
       if (!Number.isInteger(a) || a < 0 || a > 3) {
         throw new Error(`Kasus ${i + 1} soal ${j + 1}: indeks jawaban tidak valid.`);
       }
+      // Shuffle the options ourselves: models tend to put the correct answer
+      // first, which would make the quiz guessable.
+      const order = pick([0, 1, 2, 3], 4);
       return {
         q: stripParens(q.q),
-        o: q.o.map(stripParens),
-        a,
+        o: order.map((k) => stripParens(q.o[k])),
+        a: order.indexOf(a),
         e: typeof q.e === "string" ? q.e.trim() : "",
       };
     });
