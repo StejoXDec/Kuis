@@ -1,0 +1,16 @@
+# Used both by Netlify's Git-based builds and by the drag-and-drop zip that
+# `npm run build:netlify` produces (the zip carries this file at its root).
+
+[build]
+  command = "npm run build:netlify"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Single-page app: any unknown path serves index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
