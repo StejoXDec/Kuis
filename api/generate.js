@@ -110,7 +110,14 @@ async function geminiCall(prompt, model, schema, { fetchImpl, apiKey, deadline =
     const msg = (body.error && body.error.message) || `HTTP ${res.status}`;
     if (res.status === 400 && /API key/i.test(msg)) throw withCode("GEMINI_API_KEY tidak valid.", "missing_api_key");
     if (res.status === 401 || res.status === 403) throw withCode("GEMINI_API_KEY tidak valid atau tidak punya akses.", "missing_api_key");
-    if (res.status === 429) throw withCode("Kuota Gemini habis atau terlalu cepat. Coba lagi nanti.", "rate_limited", { tryNextModel: true });
+    if (res.status === 429) {
+      // Surface which limit was hit (per minute vs per day) so the user can tell.
+      const det = JSON.stringify(body.error && body.error.details ? body.error.details : "");
+      const perDay = /PerDay|per day/i.test(det + msg);
+      const perMin = /PerMinute|per minute/i.test(det + msg);
+      const jenis = perDay ? "kuota harian" : perMin ? "batas per menit" : "kuota";
+      throw withCode(`Gemini menolak: ${jenis} habis untuk key ini (${model}).`, "rate_limited", { tryNextModel: true, perDay });
+    }
     if (res.status === 503 || res.status === 404 || /no longer available|not found|high demand/i.test(msg)) {
       throw withCode(`Model ${model} tidak tersedia: ${msg}`, "upstream_error", { tryNextModel: true });
     }

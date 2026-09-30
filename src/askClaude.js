@@ -99,7 +99,7 @@ export function describeError(e) {
     case "capability_disabled":
       return "Akses ke Claude tidak diizinkan di tampilan ini.";
     case "rate_limited":
-      return "Kuota Gemini per menit tercapai. Tunggu sekitar satu menit lalu coba lagi.";
+      return (e && e.message) || "Kuota Gemini tercapai. Tunggu sebentar lalu coba lagi.";
     case "session_expired":
       return "Sesi habis. Masuk kembali lalu coba lagi.";
     case "invalid_json":
