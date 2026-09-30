@@ -290,3 +290,53 @@ export function pickPoin(topic, k, exclude = []) {
   }
   return out;
 }
+
+// ---- Excerpts -------------------------------------------------------------
+// The summaries above are one "LABEL: text" paragraph per line. A question
+// prompt gets only the paragraphs relevant to its point, so a small model
+// cannot drift back to the most prominent topic (the algorithm, PPI doses).
+
+const STOP = new Set(["yang", "untuk", "pada", "dengan", "dari", "atau", "dan", "adalah", "bila", "kali", "sehari", "hari", "tahun", "pasien", "obat", "dosis", "terapi", "harus", "serta", "lebih", "sekali", "versus", "tanpa", "menurut", "dalam", "juga", "tidak", "bukan", "kurang", "sampai", "antara", "sebagai", "seperti", "termasuk", "setiap", "tiap"]);
+const tokens = (s) =>
+  new Set(
+    String(s)
+      .toLowerCase()
+      .split(/[^a-z0-9àéêèü.\-\/]+/)
+      .map((w) => w.replace(/^[.\-\/]+|[.\-\/]+$/g, ""))
+      .filter((w) => w.length >= 4 && !STOP.has(w))
+  );
+
+const sectionCache = {};
+export function sectionsOf(topic) {
+  if (!sectionCache[topic]) {
+    sectionCache[topic] = ((MATERI[topic] && MATERI[topic].ringkasan) || "")
+      .split("\n")
+      .map((line) => {
+        const i = line.indexOf(":");
+        if (i < 3 || i > 90) return null;
+        return { label: line.slice(0, i).trim(), text: line.trim(), tok: tokens(line) };
+      })
+      .filter(Boolean);
+  }
+  return sectionCache[topic];
+}
+
+/** The 2-3 summary paragraphs that best cover a point, plus the point itself. */
+export function kutipanFor(topic, poin, max = 3) {
+  const secs = sectionsOf(topic);
+  const pt = tokens(poin);
+  const scored = secs
+    .map((s) => {
+      let n = 0;
+      for (const w of pt) if (s.tok.has(w)) n++;
+      return { s, score: n / Math.max(1, pt.size) };
+    })
+    .sort((a, b) => b.score - a.score);
+  const chosen = scored.filter((x, i) => i < 2 || (i < max && x.score >= 0.15)).map((x) => x.s.text);
+  return [`POIN: ${poin}`, ...chosen];
+}
+
+/** Short general context for the vignette: the first paragraphs of a topic. */
+export function konteksUmum(topic, n = 3) {
+  return sectionsOf(topic).slice(0, n).map((s) => s.text);
+}

@@ -2,7 +2,7 @@
 // Used by the browser (to build the prompt and validate the reply) and by the
 // Node API handler (to build the JSON schema the API must follow).
 
-import { MATERI, FORMAT_SOAL, TUGAS_KASUS, pickPoin } from "./materi.js";
+import { MATERI, FORMAT_SOAL, TUGAS_KASUS, pickPoin, kutipanFor, konteksUmum } from "./materi.js";
 
 export const TOPICS = ["GERD", "PUD", "Hepatitis A", "Hepatitis B"];
 
@@ -50,6 +50,7 @@ export const CASE_SCHEMA = {
             items: {
               type: "object",
               properties: {
+                poin: { type: "string" },
                 q: { type: "string" },
                 o: { type: "array", items: { type: "string" } },
                 a: { type: "integer" },
@@ -79,9 +80,9 @@ const prevStemsOf = (previousCases) =>
     .join("\n") || "- (tidak ada)";
 
 const RULES = `Aturan isi:
-- SUMBER FAKTA: semua fakta, angka, dosis, jadwal, kategori risiko, dan istilah HARUS diambil dari MATERI KULIAH di bawah. Jangan menambahkan fakta dari luar materi. Bila sebuah poin tidak ada di materi, jangan diuji.
+- SUMBER FAKTA: soal nomor j HANYA boleh menguji isi KUTIPAN MATERI nomor j. Jawaban benar wajib tertulis di kutipan itu; pengecoh diambil dari kutipan yang sama atau konteks umum. DILARANG membuat soal tentang alur tatalaksana, dosis PPI, atau lini pertama kecuali kutipan nomor itu memang membahasnya. Jangan menambahkan fakta dari luar kutipan.
 - Setiap kasus: "title" berupa inisial dan usia, contoh "Tn. B, 47 tahun"; "text" berupa vignette klinis 3–5 kalimat bergaya kasus tugas dosen: identitas dengan TB dan BB, keluhan dan durasi, komorbid, obat yang dibeli sendiri bila ada, hasil pemeriksaan fisik dan laboratorium atau serologi yang relevan, diagnosis dokter, dan daftar terapi yang sedang diberikan lengkap dengan dosis dan frekuensi. Sengaja selipkan satu atau dua masalah terapi di daftar itu, misalnya NSAID pada GERD atau ulkus, PPI kategori C pada kehamilan, dosis antivirus keliru, atau obat tanpa indikasi, sehingga sebagian soal bisa menanyakannya.
-- Setiap soal menguji SATU poin materi dengan BENTUK SOAL yang ditentukan di rencana, sebagai pertanyaan penerapan pada pasien itu seperti di ujian. Bentuk soal harus benar-benar diikuti: bila bentuknya "temukan kesalahan dalam resep", vignette harus memuat resep yang keliru; bila "tentukan dosis", pilihannya adalah dosis-dosis; bila "langkah berikutnya", pilihannya adalah tindakan. Tanyakan hal yang dosen tekankan, jangan tanyakan detail sepele. Contoh gaya yang diinginkan: "Langkah berikutnya menurut alur tatalaksana di layanan primer adalah…", "Regimen eradikasi yang paling sesuai untuk pasien ini adalah…", "Bila obat X dipakai bersama Y, yang terjadi adalah…", "Hasil serologi ini berarti…", "Pemantauan yang perlu dipertimbangkan bila terapi lebih dari 1 tahun adalah…".
+- Setiap soal menguji SATU poin materi dengan BENTUK SOAL yang ditentukan di rencana, sebagai pertanyaan penerapan pada pasien itu seperti di ujian. Isi field "poin" tiap soal dengan teks poin yang diuji, persis seperti di rencana. Bentuk soal harus benar-benar diikuti: bila bentuknya "temukan kesalahan dalam resep", vignette harus memuat resep yang keliru; bila "tentukan dosis", pilihannya adalah dosis-dosis; bila "langkah berikutnya", pilihannya adalah tindakan. Tanyakan hal yang dosen tekankan, jangan tanyakan detail sepele. Contoh gaya yang diinginkan: "Langkah berikutnya menurut alur tatalaksana di layanan primer adalah…", "Regimen eradikasi yang paling sesuai untuk pasien ini adalah…", "Bila obat X dipakai bersama Y, yang terjadi adalah…", "Hasil serologi ini berarti…", "Pemantauan yang perlu dipertimbangkan bila terapi lebih dari 1 tahun adalah…".
 - Setiap soal: 4 pilihan (o), satu jawaban benar (a = indeks 0–3), dan pembahasan (e) 1–3 kalimat yang menjelaskan alasan jawaban benar, menyebut sumber persis seperti tertulis di materi, misalnya "Dipiro 12 ed hal 468" atau "Lexidrug 2025", dan menyinggung mengapa pengecoh utama salah.
 - Pengecoh harus berupa obat, dosis, angka, atau tindakan yang benar-benar ada di materi tetapi salah untuk konteks ini, misalnya dosis anak untuk dewasa, regimen lini kedua untuk pasien naif, kategori kehamilan obat lain.
 - DILARANG memakai tanda kurung ( ) di pertanyaan (q) maupun di semua pilihan jawaban (o). Tulis keterangan sebagai bagian kalimat, misalnya "Tenofovir, kategori kehamilan B". Jangan menaruh petunjuk di pilihan yang membuat jawaban benar terlihat beda dari pengecoh; panjang dan gaya semua pilihan harus setara.
@@ -137,10 +138,16 @@ export function buildPlans(indices = ALL_INDICES, usedPoin = []) {
 const planLine = (plan, k) => {
   const p = CASE_PLAN[plan.i];
   const lines = plan.items
-    .map((it, j) => `   soal ${j + 1}: poin "${it.poin}"; bentuk soal: ${it.format}`)
+    .map((it, j) => {
+      const kutipan = kutipanFor(p.topic, it.poin).map((s) => `      | ${s}`).join("\n");
+      return `   SOAL ${j + 1}. Bentuk soal: ${it.format}.\n      Poin yang diuji: ${it.poin}\n      KUTIPAN MATERI untuk soal ${j + 1} (satu-satunya sumber jawaban benar dan pengecoh soal ini):\n${kutipan}`;
+    })
     .join("\n");
-  return `${k + 1}. topic "${p.topic}", ${plan.items.length} soal, latar: ${plan.setting}, pasien: ${plan.identitas} (boleh diubah bila poin materi menuntut pasien hamil, anak, atau lansia). Poin materi yang WAJIB diuji dan bentuk soalnya, satu per nomor:\n${lines}`;
+  return `${k + 1}. topic "${p.topic}", ${plan.items.length} soal, latar: ${plan.setting}, pasien: ${plan.identitas} (boleh diubah bila poin materi menuntut pasien hamil, anak, atau lansia).\n${lines}`;
 };
+
+const konteksBlock = (topics) =>
+  topics.map((t) => `### ${t}\n${konteksUmum(t).join("\n")}`).join("\n\n");
 
 const contohBlock = (topics) => {
   const list = TUGAS_KASUS.filter((k) => topics.includes(k.topic));
@@ -186,14 +193,14 @@ ${plans.map(planLine).join("\n")}
 
 ${RULES}
 
-MATERI KULIAH:
-${materiBlock(topics)}${contohBlock(topics)}
+KONTEKS UMUM (untuk menulis vignette; bukan bahan soal):
+${konteksBlock(topics)}${contohBlock(topics)}
 
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
 ${prevStemsOf(previousCases)}
 
-Balas HANYA dengan JSON valid berbentuk:
-{"cases":[{"topic":"GERD","title":"...","text":"...","questions":[{"q":"...","o":["...","...","...","..."],"a":0,"e":"..."}]}]}
+Balas HANYA dengan JSON valid berbentuk (field "poin" sudah diisi per soal, jangan diubah):
+{"cases":[${plans.map((pl) => `{"topic":"${CASE_PLAN[pl.i].topic}","title":"...","text":"...","questions":[${pl.items.map((it) => `{"poin":${JSON.stringify(it.poin)},"q":"...","o":["...","...","...","..."],"a":0,"e":"..."}`).join(",")}]}`).join(",")}]}
 
 Tepat ${plan.length} kasus, urutannya sama dengan rencana. Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce()}`;
 }
@@ -213,14 +220,14 @@ ${planLine(plan, i)}
 
 ${RULES}
 
-MATERI KULIAH:
-${materiBlock([p.topic])}${contohBlock([p.topic])}
+KONTEKS UMUM (untuk menulis vignette; bukan bahan soal):
+${konteksBlock([p.topic])}${contohBlock([p.topic])}
 
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
 ${prevStemsOf(previousCases)}
 
-Balas HANYA dengan JSON valid berbentuk:
-{"topic":"${p.topic}","title":"...","text":"...","questions":[{"q":"...","o":["...","...","...","..."],"a":0,"e":"..."}]}
+Balas HANYA dengan JSON valid berbentuk (field "poin" sudah diisi, jangan diubah):
+{"topic":"${p.topic}","title":"...","text":"...","questions":[${plan.items.map((it) => `{"poin":${JSON.stringify(it.poin)},"q":"...","o":["...","...","...","..."],"a":0,"e":"..."}`).join(",")}]}
 
 Tepat ${p.n} soal. Tanpa teks lain, tanpa blok kode. Kode variasi: ${nonce()}`;
 }
