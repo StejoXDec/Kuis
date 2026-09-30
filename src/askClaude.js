@@ -78,7 +78,7 @@ export function describeError(e) {
     case "refused":
       return "Claude menolak permintaan ini.";
     case "missing_api_key":
-      return "Server belum punya API key. Isi GEMINI_API_KEY di file .env, lihat README.";
+      return "Server belum punya API key. Lokal: isi GEMINI_API_KEY di file .env. Netlify: tambahkan GEMINI_API_KEY di Environment variables dengan scope Functions, lalu deploy ulang.";
     default:
       return (e && e.message) || "Gagal membuat soal. Coba lagi.";
   }
