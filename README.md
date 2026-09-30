@@ -42,6 +42,24 @@ model lain.
 - Dibuka sebagai artifact di claude.ai: memakai kuota langganan Claude milik
   yang membuka halaman, tanpa API key.
 
+## Deploy ke Netlify (zip drag-and-drop)
+
+```bash
+npm run build:netlify
+```
+
+Menghasilkan `kuis-netlify.zip` berisi situs statis, `netlify.toml`, dan satu
+Netlify Function mandiri untuk `/api/generate` (tanpa `node_modules`). Lalu:
+
+1. Buka https://app.netlify.com/drop dan lepas file zip itu, atau di situs yang
+   sudah ada pilih Deploys lalu drag and drop.
+2. Di Site configuration > Environment variables tambahkan `GEMINI_API_KEY`.
+   Key tidak pernah ada di dalam zip.
+3. Deploy ulang sekali (drop zip yang sama lagi) supaya function membaca key.
+
+Netlify juga bisa dihubungkan ke repo Git: `netlify.toml` sudah mengatur
+perintah build dan folder function.
+
 ## Build dan server produksi
 
 ```bash

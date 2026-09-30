@@ -3,3 +3,7 @@ dist
 .DS_Store
 *.local
 .env
+netlify/functions
+.netlify-stage
+.netlify
+kuis-netlify.zip
