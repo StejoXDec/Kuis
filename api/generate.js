@@ -40,6 +40,16 @@ const geminiModels = () =>
     .filter((m, i, arr) => arr.indexOf(m) === i);
 const CLAUDE_MODEL = "claude-opus-5-5";
 
+// GEMINI_API_KEY may hold several keys separated by commas (one per Google
+// project, since quota is counted per project). Calls rotate through them and
+// a 429 moves on to the next key before falling back to another model.
+const geminiKeys = (raw = process.env.GEMINI_API_KEY) =>
+  String(raw || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+let keyCursor = Math.floor(Math.random() * 1000);
+
 const withCode = (message, code, extra) => Object.assign(new Error(message), { code }, extra);
 
 export function pickProvider(env = process.env) {
@@ -141,10 +151,23 @@ function parseJsonLoose(text) {
 /** Run `prompt` through the model chain: two tries per model on bad JSON. */
 async function geminiWithFallback(prompt, schema, opts) {
   let lastErr = null;
+  const { keys } = opts;
   for (const model of opts.models) {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        return await geminiCall(prompt, model, schema, opts);
+        // Rotate keys; on 429 walk through the remaining keys for this model.
+        let e429 = null;
+        for (let k = 0; k < keys.length; k++) {
+          const apiKey = keys[(keyCursor++) % keys.length];
+          try {
+            return await geminiCall(prompt, model, schema, { ...opts, apiKey });
+          } catch (e) {
+            if (e.code !== "rate_limited") throw e;
+            e429 = e;
+            console.warn(`[gemini] ${model}: key ${k + 1}/${keys.length} kena 429 -> key berikutnya`);
+          }
+        }
+        throw e429;
       } catch (e) {
         lastErr = e;
         if (e.code === "timeout") throw e;
@@ -169,8 +192,9 @@ async function geminiWithFallback(prompt, schema, opts) {
  * JSON about half the time; 3 KB replies with a schema never did in testing.
  */
 export async function generateWithGemini(previousCases, { fetchImpl = fetch, apiKey = process.env.GEMINI_API_KEY, models = geminiModels(), indices = ALL_INDICES, usedPoin = [], plan = null, budgetMs = Infinity } = {}) {
-  if (!apiKey) throw withCode("GEMINI_API_KEY belum diset di server.", "missing_api_key");
-  const opts = { fetchImpl, apiKey, models, deadline: Number.isFinite(budgetMs) ? Date.now() + budgetMs : Infinity };
+  const keys = geminiKeys(apiKey);
+  if (!keys.length) throw withCode("GEMINI_API_KEY belum diset di server.", "missing_api_key");
+  const opts = { fetchImpl, keys, models, deadline: Number.isFinite(budgetMs) ? Date.now() + budgetMs : Infinity };
   const plans = plan && indices.length === 1 ? [{ ...plan, i: indices[0] }] : buildPlans(indices, usedPoinFrom(previousCases, usedPoin));
   const cases = await Promise.all(
     plans.map((plan) => geminiWithFallback(buildCasePrompt(previousCases, plan.i, plan), CASE_SCHEMA, opts))
