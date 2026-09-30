@@ -148,6 +148,7 @@ async function geminiWithFallback(prompt, schema, opts) {
       } catch (e) {
         lastErr = e;
         if (e.code === "timeout") throw e;
+        if (e.code === "rate_limited" && !e.tryNextModel) throw e;
         if (opts.deadline - Date.now() < 2500) throw withCode("Server kehabisan waktu saat meminta Gemini.", "timeout");
         if (e.code === "invalid_json" && attempt === 1) {
           console.warn(`[gemini] ${model}: ${e.message} -> mencoba sekali lagi`);

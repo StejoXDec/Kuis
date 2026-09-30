@@ -57,6 +57,12 @@ export async function getAsker() {
         if (!res.ok) {
           const gateway = res.status === 502 || res.status === 504 || (body && body.code === "timeout");
           if (gateway && attempt < 3) return one(i, kIdx, attempt + 1); // retry twice on a timeout
+          // Free-tier Gemini limits requests per minute: wait, then retry this case.
+          if (res.status === 429 && attempt < 4) {
+            await new Promise((r) => setTimeout(r, 15000 * attempt));
+            if (signal && signal.aborted) throw Object.assign(new Error("aborted"), { code: "cancelled" });
+            return one(i, kIdx, attempt + 1);
+          }
           const err = new Error((body && body.error) || (gateway ? "Server kehabisan waktu." : `Server error ${res.status}`));
           err.code = (body && body.code) || (gateway ? "timeout" : "server_error");
           throw err;
@@ -65,8 +71,18 @@ export async function getAsker() {
         onProgress && onProgress({ done, total: idx.length });
         return body.cases[0];
       };
-      const cases = await Promise.all(idx.map((i, kIdx) => one(i, kIdx)));
-      return { cases };
+      // At most 2 cases in flight: 7 at once (plus retries) exceeds the
+      // free tier's requests-per-minute limit.
+      const results = new Array(idx.length);
+      let next = 0;
+      const worker = async () => {
+        while (next < idx.length) {
+          const kIdx = next++;
+          results[kIdx] = await one(idx[kIdx], kIdx);
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(2, idx.length) }, worker));
+      return { cases: results };
     },
   };
 }
@@ -83,7 +99,7 @@ export function describeError(e) {
     case "capability_disabled":
       return "Akses ke Claude tidak diizinkan di tampilan ini.";
     case "rate_limited":
-      return "Terlalu banyak permintaan. Coba lagi beberapa saat.";
+      return "Kuota Gemini per menit tercapai. Tunggu sekitar satu menit lalu coba lagi.";
     case "session_expired":
       return "Sesi habis. Masuk kembali lalu coba lagi.";
     case "invalid_json":
