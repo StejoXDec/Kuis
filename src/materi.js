@@ -34,6 +34,8 @@ H2RA FARMAKOLOGI (Lexidrug 2025): ranitidin, simetidin, famotidin menghambat res
 ANTASIDA: diare atau konstipasi tergantung produk, gangguan mineral, gangguan asam basa; hati-hati antasida aluminium dan kalsium pada gangguan ginjal; aluminium mengikat fosfat dan dapat menyebabkan demineralisasi tulang; pantau kalsium dan fosfat pada terapi kronik.
 KASUS SOAP DI SLIDE: Tn. M 37 tahun, TB 160 cm, BB 80 kg, nyeri epigastrik 4-6 minggu setelah makan malam, muntah saat tiduran menonton TV, gejala muncul setelah makan cokelat malam hari, skala nyeri 4, diagnosis GERD, terapi asam mefenamat 500 mg 3 kali 1, antasida 3 kali 1, domperidon 3 kali 1. Masalah: obesitas, NSAID memperburuk GERD, belum ada PPI.`,
     poinUjian: [
+      "GERD pada kehamilan: NSAID seperti natrium diklofenak, ibuprofen, dan aspirin memperburuk GERD dan harus dihentikan; ganti parasetamol; omeprazol kategori kehamilan C sedangkan lansoprazol, pantoprazol, esomeprazol, rabeprazol kategori B",
+      "menemukan masalah terapi pada resep GERD: NSAID yang dibeli sendiri, PPI yang salah kategori kehamilan, antasida bersamaan obat lain, obat yang menurunkan tonus LES seperti CCB dihidropiridin",
       "alur GERD di layanan primer: GERD-Q, alarm symptom, PPI test, terapi 8 minggu, kapan rujuk",
       "cara skoring GERD-Q termasuk dua item yang skornya terbalik dan ambang 8-18",
       "alarm symptom yang mengharuskan rujukan atau endoskopi dengan biopsi",
@@ -81,6 +83,9 @@ SITOPROTEKTIF (Makmun 2021): sukralfat berikatan dengan protein eksudat ulkus me
 KOMPLIKASI PERDARAHAN (Makmun 2021): komplikasi tersering, sekitar 15% pasien, mortalitas 5-10% dalam 30 hari; selain endoskopi, supresi asam penting; asam mendukung pepsin yang mendegradasi bekuan fibrin; target pH mukosa lebih dari 6 agar hemostasis primer tercapai; PPI pilihan utama karena mempertahankan pH lebih dari 6 lebih lama daripada H2 blocker.
 KOMPLIKASI PERFORASI (Makmun 2021): trias nyeri perut, takikardia, rigiditas abdomen; demam dan leukositosis menyertai peritonitis sekunder; CT abdomen lebih sensitif mendeteksi udara bebas, foto polos tidak selalu menunjukkan udara subdiafragma; tatalaksana awal NPO, selang nasogastrik, resusitasi cairan, PPI IV, antibiotik spektrum luas, konsultasi bedah secara simultan; kondisi gawat bedah.`,
     poinUjian: [
+      "PUD dengan perdarahan pada lansia pengguna NSAID lebih dari 1 tahun: NSAID termasuk naproxen harus dihentikan, PPI pilihan utama untuk supresi asam, eradikasi H. pylori bila positif, ranitidin sudah ditarik dari pasaran AS",
+      "sukralfat suspensi 4 kali sehari harus diberi jeda sekitar 2 jam dari obat lain karena mengikat obat; aluminium menumpuk pada kreatinin meningkat",
+      "menemukan masalah terapi pada resep PUD: NSAID dilanjutkan, H2RA dipakai sesekali, dosis PPI kurang untuk ulkus berdarah, tidak ada regimen eradikasi",
       "definisi ulkus: diameter lebih dari 5 mm, peran asam dan pepsin",
       "pola nyeri PUD: perut kosong, malam hari, mereda setelah makan atau antasida",
       "alur Dipiro untuk pasien gejala ulkus tanpa alarm symptom yang memakai NSAID",
@@ -123,6 +128,8 @@ INDIKASI VAKSIN (Dipiro Tabel 58-2): semua anak usia 1 tahun; anak 2-18 tahun ya
 DOSIS VAKSIN (Dipiro Tabel 58-3): HAVRIX usia 1-18 tahun 720 ELISA unit 0,5 mL, 2 dosis, jadwal 0 dan 6-12 bulan; HAVRIX usia 19 tahun ke atas 1.440 ELISA unit 1 mL, 2 dosis, 0 dan 6-12 bulan. VAQTA usia 1-18 tahun 25 unit 0,5 mL, 2 dosis, 0 dan 6-18 bulan; VAQTA 19 tahun ke atas 50 unit 1 mL, 2 dosis, 0 dan 6-18 bulan. TWINRIX kombinasi A dan B usia 18 tahun ke atas 720 ELISA unit 1 mL, 3 dosis, 0, 1, 6 bulan; jadwal dipercepat 4 dosis hari 0, 7, 21-30, dan booster 12 bulan; TWINRIX juga mengandung 20 mcg HBsAg dan butuh 3 dosis untuk respons HBV adekuat.
 MEREK DI INDONESIA (Imuni 2025): AVAXIM 80U pediatrik dan 160 U dewasa produksi Sanofi; HAVRIX 720 dan 1440 produksi GSK; TWINRIX kombinasi A dan B produksi GSK. TWINRIX anak 2-15 tahun 2 dosis jarak 6 bulan; usia lebih dari 16 tahun dan dewasa 3 dosis jarak 0, 1, 6 bulan.`,
     poinUjian: [
+      "hepatitis A akut dengan IgM anti-HAV positif: terapi suportif saja; hentikan obat hepatotoksik dan obat bebas yang tidak perlu seperti NSAID, jamu, dan parasetamol berlebihan; antiemetik bila perlu",
+      "menemukan masalah terapi pada pasien hepatitis A akut: obat yang dibeli sendiri, herbal, kombinasi analgesik, dan edukasi sanitasi serta vaksinasi kontak",
       "karakter virus HAV: RNA, tanpa selubung, picornavirus, self-limiting",
       "cara penularan fekal-oral dan masa inkubasi 15-50 hari rata-rata 28-30 hari",
       "tiga fase klinis: prodromal, ikterik, recovery beserta durasi dan gejalanya",
@@ -163,6 +170,9 @@ POPULASI KHUSUS (Menkes 2019): ibu hamil = tenofovir kategori B aman untuk pence
 NON FARMAKOLOGI: vaksinasi keluarga dan kontak seksual dengan seri 3 dosis; eliminasi alkohol, diet seimbang, olahraga teratur, manajemen berat badan; monitoring HBV DNA, ALT, AFP tiap 3-6 bulan dan USG abdomen tiap 6 bulan untuk skrining HCC.
 VAKSIN HEPATITIS B (Imuni 2025): merek ENGERIX B GSK, VECON Bio Farma Indonesia 10 mcg pediatrik dan 20 mcg dewasa, EUVAX B Sanofi, TWINRIX GSK kombinasi. Jadwal anak: dosis 0 dalam 24 jam setelah lahir di rumah sakit, dosis 1 usia 2 bulan, dosis 2 usia 3 bulan, dosis 3 usia 4 bulan, dosis 4 usia 18 bulan booster; dapat lewat vaksin kombinasi INFANRIX HEXA, HEXAXIM, PENTABIO. Jadwal dewasa 3 dosis jarak 0, 1, 6 bulan. TWINRIX anak 2-15 tahun 2 dosis jarak 6 bulan; usia lebih dari 16 tahun 3 dosis 0, 1, 6 bulan.`,
     poinUjian: [
+      "menemukan kesalahan dosis antivirus: tenofovir disoproxil 300 mg sekali sehari bukan dua kali; entecavir 0,5 mg sekali sehari; lamivudin anak 3 mg/kg sekali sehari maksimal 100 mg; penyesuaian bila klirens kreatinin kurang dari 50 mL/menit",
+      "hepatitis B kronis dengan HBeAg positif, HBV DNA tinggi, ALT lebih dari 2 kali ULN: memenuhi indikasi terapi, lini pertama tenofovir atau entecavir, hentikan hepatotoksin, hindari NSAID dan statin dosis tinggi tanpa pemantauan fungsi hati",
+      "anak dengan hepatitis B kronis dari ibu HBsAg positif: pilihan entecavir usia 2 tahun ke atas berbasis berat badan, tenofovir usia 12 tahun ke atas, lamivudin jarang dipakai karena resistensi",
       "karakter virus HBV, jalur transmisi, dan masa inkubasi 45-180 hari rata-rata 60-90 hari",
       "empat fase hepatitis B kronis dan profil HBeAg, HBV DNA, ALT tiap fase",
       "arti tiap marker: HBsAg, anti-HBs, HBeAg, anti-HBe, anti-HBc IgM, HBV DNA",
@@ -195,16 +205,84 @@ VAKSIN HEPATITIS B (Imuni 2025): merek ENGERIX B GSK, VECON Bio Farma Indonesia 
   },
 };
 
+// Question forms, one per question, so the same slide point yields a
+// different question next time: choose the drug, fix the dose, next step in
+// the algorithm, interpret a result, spot the prescribing error, and so on.
+export const FORMAT_SOAL = [
+  "pilih obat atau regimen yang paling tepat untuk pasien ini",
+  "tentukan dosis, frekuensi, atau durasi yang benar",
+  "tentukan langkah berikutnya dalam alur tatalaksana",
+  "interpretasikan hasil pemeriksaan atau serologi pasien",
+  "temukan kesalahan atau masalah dalam resep atau terapi yang sedang berjalan",
+  "pilih parameter pemantauan atau efek samping yang harus diwaspadai",
+  "jelaskan mekanisme atau alasan farmakologis di balik pilihan terapi",
+  "tentukan apa yang terjadi bila dua obat dipakai bersamaan dan tindakannya",
+  "pilih tindakan pada populasi khusus seperti hamil, gangguan ginjal, lansia, atau anak",
+  "tentukan kapan pasien harus dirujuk, diperiksa lanjut, atau dievaluasi ulang",
+];
+
 /**
- * Random sample of `k` points for a topic. Exam-likely points first; the
- * secondary pool is used only when a set needs more points than that list
- * holds, or for one question in five so the extras still show up sometimes.
+ * Kasus tugas kelompok dari dosen (Farmakoterapi Gangguan Saluran Cerna dan
+ * Nutrisi, Kelas A1): dikerjakan dengan metode SOAP. Gaya inilah yang ditiru
+ * saat menyusun soal: vignette dengan data pemeriksaan dan daftar terapi yang
+ * memuat masalah untuk dikenali. Pasien di sini tidak boleh disalin.
  */
-export function pickPoin(topic, k) {
-  const m = MATERI[topic] || {};
+export const TUGAS_KASUS = [
+  {
+    topic: "GERD",
+    kasus: "Ny. M, 31 tahun, G2P1A0 hamil 32 minggu, TB 155 cm, BB 60 kg. Nyeri perut dan panas di dada sejak 1 bulan, muncul setelah makan dan memberat saat berbaring malam hari, sulit tidur karena asam naik ke tenggorokan. Riwayat hipertensi dan osteoartritis, rutin minum natrium diklofenak 50 mg 2×1 yang dibeli sendiri. Diagnosis GERD pada kehamilan. Terapi: valsartan 10 mg 1×1, omeprazol 20 mg 2×1, antasida 3×1, parasetamol 500 mg 3×1.",
+    masalah: "NSAID memperburuk GERD dan harus dihentikan; omeprazol kategori kehamilan C sedangkan PPI lain kategori B; valsartan bukan obat GERD tetapi perlu dinilai untuk kehamilan; antasida perlu jeda dari obat lain.",
+  },
+  {
+    topic: "Hepatitis B",
+    kasus: "Tn. F, 38 tahun, mudah lelah 2 bulan, mual ringan, tidak nyaman perut kanan atas. Hepatitis B diketahui sejak 3 tahun lalu, kontrol tidak teratur, 1 bulan terakhir minum obat lambung yang dibeli sendiri. TD 138/84, BB 70 kg, TB 168 cm, sklera tidak ikterik, tanpa asites. AST 86, ALT 112, bilirubin total 1,1, albumin 3,8, kreatinin 1,0, HBsAg positif, HBeAg positif, HBV DNA 185.000 IU/mL, trombosit 168.000. Diagnosis hepatitis B kronis dengan replikasi virus aktif. Terapi: tenofovir 300 mg 1×1, amlodipin 10 mg 1×1, antasida tablet 3×1.",
+    masalah: "Indikasi terapi terpenuhi, tenofovir dosis benar; antasida bersama obat lain perlu jeda; pantau HBV DNA, ALT, AFP tiap 3-6 bulan dan USG tiap 6 bulan; klirens kreatinin awal untuk tenofovir.",
+  },
+  {
+    topic: "GERD",
+    kasus: "Ny. P, 30 tahun, G2P1A0 hamil 32 minggu, TB 158 cm, BB sebelum hamil 55 kg, sekarang 68 kg. Nyeri ulu hati dan panas di dada setelah makan dan saat berbaring sejak usia kehamilan 24 minggu, makin sering 2 minggu terakhir, juga nyeri punggung bawah dan sakit kepala, membeli obat sendiri di apotek. TD 110/70, nadi 84, tanpa edema, tanpa disfagia, muntah darah, atau penurunan BB. Diagnosis GERD pada kehamilan. Terapi: omeprazol 20 mg 2×1, ibuprofen 400 mg 3×1, aspirin 100 mg 1×1, antasida 3×1, vitamin kehamilan 1×1.",
+    masalah: "Ibuprofen dan aspirin adalah iritan mukosa esofagus dan memperburuk GERD, ganti parasetamol; omeprazol kategori C, pilih PPI kategori B; tanpa alarm symptom sehingga tidak perlu rujuk; terapi non farmakologi.",
+  },
+  {
+    topic: "Hepatitis B",
+    kasus: "Tn. L, 66 tahun, TB 168 cm, BB 65 kg. Mual, cepat kenyang, nyeri ringan perut kanan atas 1 bulan, nyeri lutut, riwayat hipertensi dan dislipidemia, 1 bulan rutin minum pereda nyeri yang dibeli sendiri. TD 135/80, nadi 80, AST 185, ALT 225, bilirubin total 2,0, HBsAg positif, HBV DNA tinggi. Diagnosis hepatitis B kronis dengan gangguan fungsi hati. Terapi: tenofovir disoproxil fumarate 300 mg 2×1, atorvastatin 40 mg 1×1, parasetamol 1.000 mg 4×1, diklofenak 50 mg 3×1, omeprazol 20 mg 1×1.",
+    masalah: "Tenofovir seharusnya 300 mg 1×1; NSAID diklofenak dan hepatotoksin harus dihentikan; parasetamol dosis tinggi berisiko pada hati; statin dosis tinggi perlu pemantauan fungsi hati; geriatri sesuaikan dengan fungsi ginjal.",
+  },
+  {
+    topic: "Hepatitis A",
+    kasus: "Tn. J, 24 tahun, mahasiswa, TB 170 cm, BB 62 kg. Mual, muntah 3-4 kali sehari, tidak nafsu makan, lemas, demam sejak 6 hari; 2 hari terakhir mata dan kulit kuning, urin seperti teh pekat. Sering jajan di sekitar kampus, kos dengan sanitasi kurang baik, membeli obat sendiri dan minum herbal dari teman. TD 110/70, nadi 92, suhu 38,1, sklera ikterik, nyeri tekan kuadran kanan atas. AST 680, ALT 850, bilirubin total 5,2, direk 3,8, albumin 3,7, INR 1,1, IgM anti-HAV positif, HBsAg negatif. Diagnosis hepatitis A akut. Obat 4 hari terakhir: parasetamol 500 mg tiap 4 jam, ibuprofen 400 mg 3×1, metoklopramid 10 mg 3×1, jamu penambah nafsu makan 2×1. Resep dokter: parasetamol 500 mg 3×1, ondansetron 4 mg 2×1 bila mual, vitamin B kompleks 1×1. Pasien tetap minum obat yang dibelinya sendiri.",
+    masalah: "Hepatitis A hanya butuh terapi suportif; hentikan ibuprofen, jamu, dan parasetamol berlebihan karena hepatotoksik; duplikasi antiemetik; edukasi sanitasi dan vaksinasi kontak serumah; IgM anti-HAV menandai infeksi akut.",
+  },
+  {
+    topic: "Hepatitis B",
+    kasus: "An. F, 7 tahun, TB 118 cm, BB 18 kg. Hepatitis B kronis sejak 6 bulan lalu lewat skrining keluarga karena ibu HBsAg positif. Demam, mual, kadang muntah, tanpa penyakit penyerta. Pemeriksaan 6 bulan menunjukkan replikasi virus aktif sehingga dokter memulai antivirus. Terapi: lamivudin 80 mg 2×1, parasetamol 3×500 mg; alternatif tenofovir disoproxil fumarate 150 mg 1×1, amlodipin 10 mg 1×1, simvastatin 10 mg 1×1.",
+    masalah: "Lamivudin anak 3 mg/kg sekali sehari maksimal 100 mg, jadi 80 mg 2×1 berlebihan dan lamivudin jarang dipakai karena resistensi; entecavir usia 2 tahun ke atas berbasis berat badan adalah pilihan; tenofovir baru untuk usia 12 tahun ke atas; amlodipin dan simvastatin tidak ada indikasi pada anak ini.",
+  },
+  {
+    topic: "PUD",
+    kasus: "Tn. R, 68 tahun, TB 160 cm, BB 62 kg. Nyeri ulu hati seperti terbakar 3 minggu, memberat saat lambung kosong dan membaik setelah makan; 2 hari terakhir BAB hitam dan lemas. Riwayat osteoartritis, obat nyeri lutut lebih dari 1 tahun. TD 100/65, nadi 106, konjungtiva pucat, nyeri tekan epigastrium, Hb 8,9, kreatinin 1,5, tes H. pylori positif. Diagnosis PUD dengan dugaan perdarahan saluran cerna dan H. pylori positif. Riwayat obat: diklofenak 50 mg 2×1 sekitar 1 tahun, ranitidin 150 mg 2×1 kadang bila nyeri. Resep saat ini: naproxen 500 mg 2×1, omeprazol 20 mg 1×1, suspensi sukralfat 4×1 sendok makan.",
+    masalah: "Naproxen dan semua NSAID harus dihentikan pada ulkus berdarah; alarm symptom melena dan anemia butuh endoskopi; PPI adalah pilihan utama supresi asam pada perdarahan dan dosis omeprazol untuk ulkus 40 mg; perlu regimen eradikasi H. pylori; sukralfat diberi jeda 2 jam dan aluminium berisiko pada kreatinin meningkat; ranitidin sudah ditarik.",
+  },
+];
+
+/**
+ * Random sample of `k` points for a topic that are NOT in `exclude` (points
+ * already used in recent sets). Exam-likely points first; the secondary
+ * pool appears about one question in ten. When the unused pool runs dry the
+ * exclusion resets so generation never fails.
+ */
+export function pickPoin(topic, k, exclude = []) {
+  const mat = MATERI[topic] || {};
   const shuffle = (a) => a.map((x) => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map((p) => p[1]);
-  const ujian = shuffle(m.poinUjian || []);
-  const extra = shuffle(m.poinTambahan || []);
+  const ex = new Set(exclude);
+  let ujian = (mat.poinUjian || []).filter((p) => !ex.has(p));
+  let extra = (mat.poinTambahan || []).filter((p) => !ex.has(p));
+  if (ujian.length + extra.length < k) {
+    ujian = mat.poinUjian || [];
+    extra = mat.poinTambahan || [];
+  }
+  ujian = shuffle(ujian);
+  extra = shuffle(extra);
   const out = [];
   while (out.length < k && (ujian.length || extra.length)) {
     const useExtra = extra.length && (!ujian.length || Math.random() < 0.1);

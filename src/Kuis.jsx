@@ -1,9 +1,26 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { BUILTIN_CASES } from "./cases.js";
-import { TOPICS, buildPrompt, normalizeCases, indicesForScope } from "./generator.js";
+import { TOPICS, buildPrompt, buildPlans, usedPoinFrom, normalizeCases, indicesForScope } from "./generator.js";
 import { getAsker, describeError } from "./askClaude.js";
 
 const STORAGE_KEY = "kuis.generated.v1";
+const USED_KEY = "kuis.usedPoin.v1";
+
+const loadUsed = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(USED_KEY) || "[]");
+    return Array.isArray(v) ? v.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+};
+const saveUsed = (list) => {
+  try {
+    localStorage.setItem(USED_KEY, JSON.stringify(list.slice(-200)));
+  } catch {
+    /* ignore */
+  }
+};
 
 const buildFlat = (cases) =>
   cases.flatMap((c) =>
@@ -58,6 +75,7 @@ export default function Kuis() {
   const [asker, setAsker] = useState(undefined); // undefined = still resolving
   const [gen, setGen] = useState({ status: "idle" });
   const [scope, setScope] = useState("satu"); // "satu" = 1 kasus per topik, "semua"
+  const [usedPoin, setUsedPoin] = useState(loadUsed); // slide points already tested
   const [elapsed, setElapsed] = useState(0);
   const abortRef = useRef(null);
 
@@ -124,11 +142,18 @@ export default function Kuis() {
     setGen({ status: "loading", chars: 0 });
     try {
       const indices = indicesForScope(scope);
-      const data = await asker.ask({ prompt: buildPrompt(cases, indices), previousCases: cases, indices }, {
+      const used = usedPoinFrom(cases, usedPoin);
+      // The server plans its own points; only the artifact path needs plans here.
+      const plans = asker.source === "server" ? null : buildPlans(indices, used);
+      const prompt = plans ? buildPrompt(cases, indices, plans) : "";
+      const data = await asker.ask({ prompt, previousCases: cases, indices, usedPoin: used }, {
         signal: ctl.signal,
         onText: ({ text }) => setGen({ status: "loading", chars: text.length }),
       });
-      const fresh = normalizeCases(data, indices);
+      const fresh = normalizeCases(data, indices, plans);
+      const nextUsed = [...used, ...fresh.flatMap((c) => c.poin || [])].slice(-200);
+      setUsedPoin(nextUsed);
+      saveUsed(nextUsed);
       // Replace only the regenerated slots; the other cases stay as they are.
       const merged = cases.map((c) => fresh.find((f) => f.id === c.id) || c);
       setCases(merged);

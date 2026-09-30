@@ -14,6 +14,8 @@ import {
   CASES_SCHEMA,
   buildPrompt,
   buildCasePrompt,
+  buildPlans,
+  usedPoinFrom,
   normalizeCases,
 } from "../src/generator.js";
 
@@ -150,13 +152,14 @@ async function geminiWithFallback(prompt, schema, opts) {
  * plan, all in parallel. A 20 KB single reply from the lite model broke its
  * JSON about half the time; 3 KB replies with a schema never did in testing.
  */
-export async function generateWithGemini(previousCases, { fetchImpl = fetch, apiKey = process.env.GEMINI_API_KEY, models = geminiModels(), indices = ALL_INDICES } = {}) {
+export async function generateWithGemini(previousCases, { fetchImpl = fetch, apiKey = process.env.GEMINI_API_KEY, models = geminiModels(), indices = ALL_INDICES, usedPoin = [] } = {}) {
   if (!apiKey) throw withCode("GEMINI_API_KEY belum diset di server.", "missing_api_key");
   const opts = { fetchImpl, apiKey, models };
+  const plans = buildPlans(indices, usedPoinFrom(previousCases, usedPoin));
   const cases = await Promise.all(
-    indices.map((i) => geminiWithFallback(buildCasePrompt(previousCases, i), CASE_SCHEMA, opts))
+    plans.map((plan) => geminiWithFallback(buildCasePrompt(previousCases, plan.i, plan), CASE_SCHEMA, opts))
   );
-  return normalizeCases(cases, indices);
+  return normalizeCases(cases, indices, plans);
 }
 
 // ---------- Claude ----------
@@ -169,8 +172,9 @@ const getAnthropic = async () => {
   return { Anthropic: anthropicModule, client: anthropicClient };
 };
 
-export async function generateWithClaude(previousCases, indices = ALL_INDICES) {
+export async function generateWithClaude(previousCases, indices = ALL_INDICES, usedPoin = []) {
   const { Anthropic, client } = await getAnthropic();
+  const plans = buildPlans(indices, usedPoinFrom(previousCases, usedPoin));
   try {
     const stream = client.beta.messages.stream({
       model: CLAUDE_MODEL,
@@ -182,7 +186,7 @@ export async function generateWithClaude(previousCases, indices = ALL_INDICES) {
         effort: "medium",
         format: { type: "json_schema", schema: CASES_SCHEMA },
       },
-      messages: [{ role: "user", content: buildPrompt(previousCases, indices) }],
+      messages: [{ role: "user", content: buildPrompt(previousCases, indices, plans) }],
     });
     const message = await stream.finalMessage();
 
@@ -190,7 +194,7 @@ export async function generateWithClaude(previousCases, indices = ALL_INDICES) {
     if (message.stop_reason === "max_tokens") throw withCode("Balasan terpotong. Coba lagi.", "invalid_json");
 
     const text = message.content.filter((b) => b.type === "text").map((b) => b.text).join("");
-    return normalizeCases(parseJsonLoose(text), indices);
+    return normalizeCases(parseJsonLoose(text), indices, plans);
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) throw withCode("ANTHROPIC_API_KEY tidak valid.", "missing_api_key");
     if (e instanceof Anthropic.RateLimitError) throw withCode("Rate limit Claude API tercapai.", "rate_limited");
@@ -209,10 +213,13 @@ export const cleanIndices = (list) => {
   return uniq.length ? uniq : ALL_INDICES;
 };
 
-export async function generateCases(previousCases = [], indices = ALL_INDICES) {
+export const cleanUsedPoin = (list) =>
+  (Array.isArray(list) ? list : []).filter((s) => typeof s === "string").map((s) => s.slice(0, 300)).slice(-300);
+
+export async function generateCases(previousCases = [], indices = ALL_INDICES, usedPoin = []) {
   const provider = pickProvider();
-  if (provider === "gemini") return generateWithGemini(previousCases, { indices });
-  if (provider === "claude") return generateWithClaude(previousCases, indices);
+  if (provider === "gemini") return generateWithGemini(previousCases, { indices, usedPoin });
+  if (provider === "claude") return generateWithClaude(previousCases, indices, usedPoin);
   throw withCode("Belum ada API key. Isi GEMINI_API_KEY di file .env.", "missing_api_key");
 }
 
@@ -245,6 +252,7 @@ const STATUS = { missing_api_key: 500, rate_limited: 429, refused: 422, invalid_
 const slimCases = (list) =>
   (Array.isArray(list) ? list : []).slice(0, 20).map((c) => ({
     title: String((c && c.title) || "").slice(0, 120),
+    poin: (Array.isArray(c && c.poin) ? c.poin : []).filter((s) => typeof s === "string").slice(0, 10),
     questions: (Array.isArray(c && c.questions) ? c.questions : [])
       .slice(0, 10)
       .map((q) => ({ q: String((q && q.q) || "").slice(0, 300) })),
@@ -263,7 +271,7 @@ export async function handleGenerate(req, res) {
   }
   try {
     const body = await readJson(req);
-    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices));
+    const cases = await generateCases(slimCases(body.previousCases), cleanIndices(body.indices), cleanUsedPoin(body.usedPoin));
     send(res, 200, { cases, provider: pickProvider() });
   } catch (e) {
     const code = e.code || "server_error";

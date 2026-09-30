@@ -2,7 +2,7 @@
 // Used by the browser (to build the prompt and validate the reply) and by the
 // Node API handler (to build the JSON schema the API must follow).
 
-import { MATERI, pickPoin } from "./materi.js";
+import { MATERI, FORMAT_SOAL, TUGAS_KASUS, pickPoin } from "./materi.js";
 
 export const TOPICS = ["GERD", "PUD", "Hepatitis A", "Hepatitis B"];
 
@@ -80,8 +80,8 @@ const prevStemsOf = (previousCases) =>
 
 const RULES = `Aturan isi:
 - SUMBER FAKTA: semua fakta, angka, dosis, jadwal, kategori risiko, dan istilah HARUS diambil dari MATERI KULIAH di bawah. Jangan menambahkan fakta dari luar materi. Bila sebuah poin tidak ada di materi, jangan diuji.
-- Setiap kasus: "title" berupa inisial dan usia, contoh "Tn. B, 47 tahun"; "text" berupa vignette klinis 2–4 kalimat yang memuat semua data yang dibutuhkan untuk menjawab soal: keluhan, durasi, riwayat obat dengan nama dan dosis, komorbid, hasil pemeriksaan atau serologi bila relevan.
-- Setiap soal menguji SATU poin materi yang ditentukan di rencana, dengan pertanyaan penerapan pada pasien itu seperti di ujian: memilih obat, dosis, langkah alur, interpretasi hasil, atau pemantauan. Tanyakan hal yang dosen tekankan, jangan tanyakan detail sepele. Contoh gaya yang diinginkan: "Langkah berikutnya menurut alur tatalaksana di layanan primer adalah…", "Regimen eradikasi yang paling sesuai untuk pasien ini adalah…", "Bila obat X dipakai bersama Y, yang terjadi adalah…", "Hasil serologi ini berarti…", "Pemantauan yang perlu dipertimbangkan bila terapi lebih dari 1 tahun adalah…".
+- Setiap kasus: "title" berupa inisial dan usia, contoh "Tn. B, 47 tahun"; "text" berupa vignette klinis 3–5 kalimat bergaya kasus tugas dosen: identitas dengan TB dan BB, keluhan dan durasi, komorbid, obat yang dibeli sendiri bila ada, hasil pemeriksaan fisik dan laboratorium atau serologi yang relevan, diagnosis dokter, dan daftar terapi yang sedang diberikan lengkap dengan dosis dan frekuensi. Sengaja selipkan satu atau dua masalah terapi di daftar itu, misalnya NSAID pada GERD atau ulkus, PPI kategori C pada kehamilan, dosis antivirus keliru, atau obat tanpa indikasi, sehingga sebagian soal bisa menanyakannya.
+- Setiap soal menguji SATU poin materi dengan BENTUK SOAL yang ditentukan di rencana, sebagai pertanyaan penerapan pada pasien itu seperti di ujian. Bentuk soal harus benar-benar diikuti: bila bentuknya "temukan kesalahan dalam resep", vignette harus memuat resep yang keliru; bila "tentukan dosis", pilihannya adalah dosis-dosis; bila "langkah berikutnya", pilihannya adalah tindakan. Tanyakan hal yang dosen tekankan, jangan tanyakan detail sepele. Contoh gaya yang diinginkan: "Langkah berikutnya menurut alur tatalaksana di layanan primer adalah…", "Regimen eradikasi yang paling sesuai untuk pasien ini adalah…", "Bila obat X dipakai bersama Y, yang terjadi adalah…", "Hasil serologi ini berarti…", "Pemantauan yang perlu dipertimbangkan bila terapi lebih dari 1 tahun adalah…".
 - Setiap soal: 4 pilihan (o), satu jawaban benar (a = indeks 0–3), dan pembahasan (e) 1–3 kalimat yang menjelaskan alasan jawaban benar, menyebut sumber persis seperti tertulis di materi, misalnya "Dipiro 12 ed hal 468" atau "Lexidrug 2025", dan menyinggung mengapa pengecoh utama salah.
 - Pengecoh harus berupa obat, dosis, angka, atau tindakan yang benar-benar ada di materi tetapi salah untuk konteks ini, misalnya dosis anak untuk dewasa, regimen lini kedua untuk pasien naif, kategori kehamilan obat lain.
 - DILARANG memakai tanda kurung ( ) di pertanyaan (q) maupun di semua pilihan jawaban (o). Tulis keterangan sebagai bagian kalimat, misalnya "Tenofovir, kategori kehamilan B". Jangan menaruh petunjuk di pilihan yang membuat jawaban benar terlihat beda dari pengecoh; panjang dan gaya semua pilihan harus setara.
@@ -93,12 +93,60 @@ const INTRO = `Kamu adalah dosen farmakoterapi yang menyusun SOAL UJIAN kasus un
 
 const NOVELTY = `harus benar-benar baru dan berbeda dari set sebelumnya: pasien dengan inisial, usia, jenis kelamin, pekerjaan, dan komorbid yang lain; latar layanan yang lain; alur cerita yang lain; dan poin materi yang diuji juga berbeda. Jangan mengulang atau memparafrasakan soal lama.`;
 
-// One slide point per question, chosen at random from the topic's list, so
-// every set tests a different slice of the material.
-const planLine = (p, i) => {
-  const setting = pick(SETTINGS, 1)[0];
-  const poin = pickPoin(p.topic, p.n).map((s, j) => `   soal ${j + 1}: ${s}`).join("\n");
-  return `${i + 1}. topic "${p.topic}", ${p.n} soal, latar: ${setting}. Poin materi yang WAJIB diuji, satu per soal:\n${poin}`;
+/** Slide points already tested in the given cases (and any extra history). */
+export function usedPoinFrom(cases = [], history = []) {
+  const fromCases = (Array.isArray(cases) ? cases : []).flatMap((c) => (Array.isArray(c && c.poin) ? c.poin : []));
+  return [...new Set([...history, ...fromCases].filter((s) => typeof s === "string"))];
+}
+
+/**
+ * Decide, per plan slot, the setting plus one slide point and one question
+ * form per question. Points already used (in `usedPoin` or earlier in this
+ * same batch) are avoided, so consecutive sets test different material.
+ */
+const INISIAL = "ABCDEFGHIJKLMNOPRSTUVWY".split("");
+const identitasFor = (topic, taken) => {
+  // Pregnancy-related Hepatitis B cases need a woman; otherwise random.
+  const sex = Math.random() < 0.5 ? "Ny." : "Tn.";
+  let huruf;
+  do huruf = INISIAL[Math.floor(Math.random() * INISIAL.length)]; while (taken.has(huruf));
+  taken.add(huruf);
+  const bands = topic === "Hepatitis A" ? ["19-25", "26-35", "36-45"] : ["22-30", "31-40", "41-50", "51-60", "61-70"];
+  const usia = bands[Math.floor(Math.random() * bands.length)];
+  return `${sex} ${huruf}, usia sekitar ${usia} tahun`;
+};
+
+export function buildPlans(indices = ALL_INDICES, usedPoin = []) {
+  const exclude = [...usedPoin];
+  const takenInitials = new Set();
+  return indices.map((i) => {
+    const p = CASE_PLAN[i];
+    const poin = pickPoin(p.topic, p.n, exclude);
+    exclude.push(...poin);
+    const formats = pick(FORMAT_SOAL, p.n);
+    return {
+      i,
+      setting: pick(SETTINGS, 1)[0],
+      identitas: identitasFor(p.topic, takenInitials),
+      items: poin.map((s, j) => ({ poin: s, format: formats[j] || pick(FORMAT_SOAL, 1)[0] })),
+    };
+  });
+}
+
+// One slide point and one question form per question.
+const planLine = (plan, k) => {
+  const p = CASE_PLAN[plan.i];
+  const lines = plan.items
+    .map((it, j) => `   soal ${j + 1}: poin "${it.poin}"; bentuk soal: ${it.format}`)
+    .join("\n");
+  return `${k + 1}. topic "${p.topic}", ${plan.items.length} soal, latar: ${plan.setting}, pasien: ${plan.identitas} (boleh diubah bila poin materi menuntut pasien hamil, anak, atau lansia). Poin materi yang WAJIB diuji dan bentuk soalnya, satu per nomor:\n${lines}`;
+};
+
+const contohBlock = (topics) => {
+  const list = TUGAS_KASUS.filter((k) => topics.includes(k.topic));
+  if (!list.length) return "";
+  return `\n\nCONTOH KASUS TUGAS DARI DOSEN (tiru GAYANYA: data pemeriksaan lengkap, daftar terapi yang sedang dipakai termasuk obat bermasalah, lalu soal yang meminta mahasiswa mengenali masalah dan memperbaikinya; JANGAN menyalin pasien, angka, atau obatnya):\n` +
+    list.map((k, i) => `Contoh ${i + 1} [${k.topic}]: ${k.kasus}\n   Masalah terapi yang diharapkan dikenali: ${k.masalah}`).join("\n");
 };
 
 const materiBlock = (topics) =>
@@ -126,7 +174,7 @@ export function indicesForScope(scope) {
     .sort((a, b) => a - b);
 }
 
-export function buildPrompt(previousCases = [], indices = ALL_INDICES) {
+export function buildPrompt(previousCases = [], indices = ALL_INDICES, plans = buildPlans(indices, usedPoinFrom(previousCases))) {
   const plan = indices.map((i) => CASE_PLAN[i]);
   const topics = TOPICS.filter((t) => plan.some((p) => p.topic === t));
   return `${INTRO}
@@ -134,12 +182,12 @@ export function buildPrompt(previousCases = [], indices = ALL_INDICES) {
 Buat ${plan.length} kasus klinis BARU dalam bahasa Indonesia untuk kuis. Kasus-kasus ini ${NOVELTY}
 
 Rencana set (ikuti persis urutan, topik, dan jumlah soal per kasus):
-${plan.map(planLine).join("\n")}
+${plans.map(planLine).join("\n")}
 
 ${RULES}
 
 MATERI KULIAH:
-${materiBlock(topics)}
+${materiBlock(topics)}${contohBlock(topics)}
 
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
 ${prevStemsOf(previousCases)}
@@ -154,19 +202,19 @@ Tepat ${plan.length} kasus, urutannya sama dengan rencana. Tanpa teks lain, tanp
  * Prompt for ONE case of the plan (index `i`). Small replies are far more
  * reliable from small models, and the 7 requests can run in parallel.
  */
-export function buildCasePrompt(previousCases = [], i) {
+export function buildCasePrompt(previousCases = [], i, plan = buildPlans([i], usedPoinFrom(previousCases))[0]) {
   const p = CASE_PLAN[i];
   return `${INTRO}
 
 Buat SATU kasus klinis baru dalam bahasa Indonesia untuk kuis. Kasus ini ${NOVELTY}
 
 Kasus yang diminta:
-${planLine(p, i)}
+${planLine(plan, i)}
 
 ${RULES}
 
 MATERI KULIAH:
-${materiBlock([p.topic])}
+${materiBlock([p.topic])}${contohBlock([p.topic])}
 
 Hindari mengulang judul atau pertanyaan berikut (set sebelumnya):
 ${prevStemsOf(previousCases)}
@@ -202,7 +250,7 @@ export function stripParens(s) {
  * Validate and normalise a reply. Returns an array of cases in the same
  * shape as the built-in set, or throws with a readable message.
  */
-export function normalizeCases(data, indices = ALL_INDICES) {
+export function normalizeCases(data, indices = ALL_INDICES, plans = null) {
   const cases = Array.isArray(data) ? data : data && data.cases;
   if (!Array.isArray(cases) || cases.length === 0) {
     throw new Error("Balasan tidak berisi daftar kasus.");
@@ -240,12 +288,17 @@ export function normalizeCases(data, indices = ALL_INDICES) {
         e: typeof q.e === "string" ? q.e.trim() : "",
       };
     });
+    // Which slide points this case tested: from the server's reply when it
+    // planned the case, else from the plans built here.
+    const fromReply = Array.isArray(c.poin) ? c.poin.filter((s) => typeof s === "string") : null;
+    const fromPlan = plans && plans[k] ? plans[k].items.map((it) => it.poin) : null;
     return {
       id: plan.id,
       topic,
       title: String(c.title || `Kasus ${i + 1}`).trim(),
       text: String(c.text || "").trim(),
       questions,
+      poin: fromReply && fromReply.length ? fromReply : fromPlan || [],
     };
   });
 }
